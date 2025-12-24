@@ -1,0 +1,63 @@
+# Userland Linux Simulator for CC: Tweaked
+
+## TODO:
+- [ ] Short term: File path resolution & permission implementation
+- [ ] Short term: Implement system calls
+    - [~] exec
+    - [~] spawn (fork would be cumbersome to implement in lua)
+    - [x] exit
+    - [x] setuid
+    - [ ] getuid
+    - [x] seteuid
+    - [x] geteuid
+    - [x] setgid
+    - [ ] getgid
+    - [x] setegid
+    - [ ] getegid
+    - [~] open *
+    - [ ] close *
+    - [ ] read *
+    - [ ] write * 
+    - [ ] mkdir
+    - [~] readdir *
+    - [x] getcwd
+    - [x] chdir
+    - [~] waitpid (currently just wait)
+    - [ ] stat
+    - [ ] access *
+    - [ ] chmod
+    - [ ] chown
+    - [ ] pipe
+    - [ ] kill
+    - [ ] msg*?
+    - [ ] shm*?
+    - [ ] socket*?
+    - [ ] more?
+- [ ] Medium term: Implement compatibility mode for CraftOS scripts
+    - [ ] Globals
+    - [ ] Modules
+    - [ ] Peripherals
+    - [ ] Generic Peripherals
+    - [ ] Events
+- [ ] Medium term: Install script
+- [ ] Long term: Implement virtual file systems/devices (and related syscalls)?
+    - [ ] /tmp
+    - [ ] /proc?
+        - [ ] /net or /rednet?
+    - [ ] /sys?
+    - [ ] /dev
+        - [ ] /ttyN
+        - [ ] /null
+        - [ ] /full?
+        - [ ] /fd?
+- [ ] Long term: transition away from depending on CraftOS?
+- [ ] Long term: OpenComputers 1 and/or 2 compatibility?
+
+## Topics for potential discussion
+- Should inodes stay in /etc/inode or move to another directory? Maybe /sys? (i.e. /dev/rom/inodes or /sys/block/dev/inodes)
+- Should virtual files be created on the actual file system or should they only exist in memory/in the inode file? (i.e. symlinks, procfs files, etc.)
+- Should the simulator be moved to its own directory?
+- Should /rom be visible/accessible? (perhaps it needs to be mounted first?)
+- How close should syscall names be to linux syscalls? (i.e. exec vs execve)
+- Libraries - what do we need?
+- Should there be a naming convention for, i.e. libraries? Like .so.lua?

@@ -1,8 +1,9 @@
 -- Tabletools kernel library
 -- Tools used for manipulating tables
-local TableTools
 
-local function _tabletools_freeze(original_table)
+local tabletools = {}
+
+function tabletools.freeze(original_table)
     local proxy = {}
     local mt = {
         __index = original_table,
@@ -16,7 +17,7 @@ local function _tabletools_freeze(original_table)
     return setmetatable(proxy, mt)
 end
 
-local function _tabletools_shallowcopy(original)
+function tabletools.shallowcopy(original)
     local copy = {}
     for k, v in pairs(original) do
         copy[k] = v
@@ -24,7 +25,7 @@ local function _tabletools_shallowcopy(original)
     return copy
 end
 
-local function _tabletools_deepcopy(orig, seen)
+function tabletools.deepcopy(orig, seen)
     seen = seen or {} -- Table to track already-copied tables to handle cycles
     if type(orig) ~= 'table' then
         return orig -- Non-tables are returned directly
@@ -49,17 +50,11 @@ local function _tabletools_deepcopy(orig, seen)
 
     return copy
 end
-
-local function _tabletools_find(t, search)
+function tabletools.find(t, search)
     for index, value in ipairs(t) do
         if search == value then return index end
     end
     return -1
 end
 
-TableTools = {
-    freeze = _tabletools_freeze,
-    shallowcopy = _tabletools_shallowcopy,
-    deepcopy = _tabletools_deepcopy,
-    find = _tabletools_find
-}
+return tabletools.freeze(tabletools)
