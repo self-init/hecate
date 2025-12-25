@@ -24,12 +24,27 @@ function Kernel:new(arch)
     return kernel
 end
 
-function Kernel:bus_register()
-
+function Kernel:bus_register(bus)
+    table.insert(self.buses, bus)
+    -- Iterate over drivers and if one matches, set it as the bus's driver
+    for _, driver in ipairs(self.drivers) do
+        if TableTools.find(driver.match_table, bus.type) then
+            bus.driver = driver
+            return
+        end
+    end
 end
 
-function Kernel:device_register()
-
+function Kernel:driver_register(driver)
+    table.insert(self.drivers, driver)
+    -- Iterate over buses that don't have a driver, and if they match, set it as that bus's driver
+    for _, device in ipairs(self.devices) do
+        if device.driver ~= nil then
+            if self:match(device, driver) then
+                device.driver = driver
+            end
+        end
+    end
 end
 
 function Kernel:mount(source, target, fs_type, flags, opts)
@@ -44,13 +59,6 @@ end
 
 function Kernel:start()
     -- Start driver core and device enumeration
-
-    -- Register buses
-
-    if self.architecture == Kernel.ARCH_COMPUTERCRAFT then
-        self:register_bus(cc_bus.new("cc_bus"))
-        self:register_bus(cci_bus.new("cci_bus"))
-    end
 
     -- Mount devtmpfs
 
