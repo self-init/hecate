@@ -1,8 +1,8 @@
 -- Tabletools kernel library
 -- Tools used for manipulating tables
-local TableTools
+local TableTools = {}
 
-local function _tabletools_freeze(original_table)
+function TableTools.freeze(original_table)
     local proxy = {}
     local mt = {
         __index = original_table,
@@ -16,7 +16,7 @@ local function _tabletools_freeze(original_table)
     return setmetatable(proxy, mt)
 end
 
-local function _tabletools_shallowcopy(original)
+function TableTools.shallowcopy(original)
     local copy = {}
     for k, v in pairs(original) do
         copy[k] = v
@@ -24,7 +24,7 @@ local function _tabletools_shallowcopy(original)
     return copy
 end
 
-local function _tabletools_deepcopy(orig, seen)
+function TableTools.deepcopy(orig, seen)
     seen = seen or {} -- Table to track already-copied tables to handle cycles
     if type(orig) ~= 'table' then
         return orig -- Non-tables are returned directly
@@ -38,28 +38,21 @@ local function _tabletools_deepcopy(orig, seen)
 
     -- Copy keys and values recursively
     for k, v in pairs(orig) do
-        copy[tabletools.deepcopy(k, seen)] = tabletools.deepcopy(v, seen)
+        copy[TableTools.deepcopy(k, seen)] = TableTools.deepcopy(v, seen)
     end
 
     -- Copy the metatable if it exists
     local mt = getmetatable(orig)
     if mt then
-        setmetatable(copy, tabletools.deepcopy(mt, seen))
+        setmetatable(copy, TableTools.deepcopy(mt, seen))
     end
 
     return copy
 end
 
-local function _tabletools_find(t, search)
+function TableTools.find(t, search)
     for index, value in ipairs(t) do
         if search == value then return index end
     end
     return -1
 end
-
-TableTools = {
-    freeze = _tabletools_freeze,
-    shallowcopy = _tabletools_shallowcopy,
-    deepcopy = _tabletools_deepcopy,
-    find = _tabletools_find
-}
