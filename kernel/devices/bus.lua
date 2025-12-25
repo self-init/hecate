@@ -2,11 +2,13 @@
 
 local Bus = {}
 
-function Bus:new(bus_name)
+function Bus:new(bus_name, bus_type)
     local bus = {
-        name = bus_name or "",
+        name = bus_name,
+        type = bus_type,
         devices = {},
         drivers = {},
+        driver = nil,
     }
     setmetatable(bus, self)
     self.__index = self
@@ -24,7 +26,10 @@ end
 
 -- This function should scan for new devices and register any new ones using the device_register() function.
 function Bus:scan_devices()
-    error("Error: scan_devices() is not implemented on this Bus object.")
+    if self.driver == nil then
+        error("Error: " .. self.name .. " scan_devices: there is no driver associated with this bus.")
+    end
+    self.driver:scan_devices(self)
 end
 
 -- Register a new device with the bus
