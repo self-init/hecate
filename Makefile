@@ -12,7 +12,7 @@ $(cc_startup_file): $(lib_file) $(out)
 
 $(lib_file): $(wildcard kernel/*.lua) $(out)
 	> $(lib_file)
-	build/join_files.sh $(lib_file) kernel/vfs/dentry.lua kernel/vfs/inode.lua kernel/kernel.lua
+	build/join_files.sh $(lib_file) kernel/common/*.lua kernel/vfs/*.lua kernel/processes/*.lua kernel/devices/*.lua kernel/buses/*.lua kernel/kernel.lua
 
 $(out):
 	mkdir $(out)
