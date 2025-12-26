@@ -5,46 +5,6 @@
 -- It also  contains information about the owner of the file, the type of file,
 -- and who has read/write/execute permissions for the file
 
-local Inode
-
-local function _inode_new(device_id, id, file_identifier, file_type, owner, group)
-    return {
-        device_id = device_id,
-        id = id,
-        file_identifier = file_identifier,
-        type = file_type,
-        links = 0,
-        owner = owner,
-        group = group,
-        flags = 0x01FF
-    }
-end
-
-local function _inode_get_perms(ind, rwe_mask, uid, gids)
-    local perms = ind.flags
-    if uid ~= ind.owner then
-        perms = bit32.band(perms, bit32.bnot(Inode.MASK_OWNER))
-    end
-
-    local is_in_group = false
-    for _,gid in ipairs(gids) do
-        if gid == ind.group then
-            is_in_group = true
-            break
-        end
-    end
-
-    if not is_in_group then
-        perms = bit32.band(perms, bit32.bnot(Inode.MASK_GROUP))
-    end
-
-    return bit32.btest(perms, rwe_mask)
-end
-
-local function _inode_is_file_type(ind, flag)
-    return bit32.btest(ind.flags, flag)
-end
-
 Inode = {
                            -- [ Inode type flags ]
     TYPE_SCK     = 0xC000, -- Socket
@@ -79,8 +39,42 @@ Inode = {
     MASK_PERMS   = 0x01FF, -- All perms (excluding special bits)
     MASK_MODE    = 0x0FFF, -- All perms (including special bits)
     MASK_TYPE    = 0xF000, -- File type
-
-    new = _inode_new,
-    get_prems = _inode_get_perms,
-    is_file_type = _inode_is_file_type
 }
+
+function Inode.create(device_id, id, file_identifier, file_type, owner, group)
+    return {
+        device_id = device_id,
+        id = id,
+        file_identifier = file_identifier,
+        type = file_type,
+        links = 0,
+        owner = owner,
+        group = group,
+        flags = 0x01FF,
+    }
+end
+
+function Inode.get_perms(ind, rwe_mask, uid, gids)
+    local perms = ind.flags
+    if uid ~= ind.owner then
+        perms = bit32.band(perms, bit32.bnot(Inode.MASK_OWNER))
+    end
+
+    local is_in_group = false
+    for _,gid in ipairs(gids) do
+        if gid == ind.group then
+            is_in_group = true
+            break
+        end
+    end
+
+    if not is_in_group then
+        perms = bit32.band(perms, bit32.bnot(Inode.MASK_GROUP))
+    end
+
+    return bit32.btest(perms, rwe_mask)
+end
+
+function Inode.get_file_type(ind, mask)
+     return bit32.btest(ind.flags, flag)
+end
