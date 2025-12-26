@@ -22,3 +22,9 @@ end
 function Vfs:get_filesystem(path, working_directory)
 
 end
+
+-- Mount a device to a path
+function Vfs:mount(device, mount_path)
+    local mnt = Mount.create(device, mount_path)
+    self.mounts[mount_path] = mnt
+end
