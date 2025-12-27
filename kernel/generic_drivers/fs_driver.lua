@@ -1,9 +1,10 @@
 local FsDriver = {}
 
-function FsDriver:new(name)
+function FsDriver:new(name, device)
     local fs_driver = {
         name = name,
-        mounts = {}
+        device = device,
+        mounts = {},
     }
     setmetatable(fs_driver, self)
     self.__index = self
