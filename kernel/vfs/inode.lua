@@ -75,6 +75,6 @@ function Inode.get_perms(ind, rwe_mask, uid, gids)
     return bit32.btest(perms, rwe_mask)
 end
 
-function Inode.get_file_type(ind, mask)
+function Inode.get_file_type(ind, flag)
      return bit32.btest(ind.flags, flag)
 end
