@@ -41,11 +41,9 @@ Inode = {
     MASK_TYPE    = 0xF000, -- File type
 }
 
-function Inode.create(device_id, id, file_identifier, file_type, owner, group)
+function Inode.create(id, file_type, owner, group)
     return {
-        device_id = device_id,
         id = id,
-        file_identifier = file_identifier,
         type = file_type,
         links = 0,
         owner = owner,

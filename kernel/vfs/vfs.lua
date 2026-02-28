@@ -1,10 +1,10 @@
-local Vfs = {}
+---@class Vfs
+---@field mount_table table<string, Driver>
+Vfs = {}
 
 function Vfs:new()
     local vfs = {
-        superblocks = {},
-        inode_cache = {},
-        dentry_cache = {}
+        mount_table = {},
     }
     setmetatable(vfs, self)
     self.__index = self
@@ -12,33 +12,61 @@ function Vfs:new()
     return vfs
 end
 
--- Gets an Inode from the path and working directory.
-function Vfs:namei(path, working_directory)
-    local working_directory = working_directory or ""
-
+-- Gets an Inode from the path.
+function Vfs:namei(resolved_path)
+	local driver = Vfs:get_fs_driver(resolved_path)
+	return driver:get_inode(resolved_path)
 end
 
 -- Get the filesystem/device that a file is from.
-function Vfs:get_filesystem(path, working_directory)
-    local rpath = Paths.resolve(path, working_directory)
+function Vfs:get_fs_driver(resolved_path)
     local matching_mount_path = ""
-    local matching_superblock
+    local matching_driver
 
-    for mount_path, superblock in pairs(self.superblocks) do
-        if mount_path == rpath:sub(1,#mount_path) and #mount_path > #matching_mount_path then
+    for mount_path, driver in pairs(self.mount_table) do
+        if mount_path == resolved_path:sub(1,#mount_path) and #mount_path > #matching_mount_path then
             matching_mount_path = mount_path
-            matching_superblock = superblock
+            matching_driver = driver
         end
     end
 
-    if matching_superblock == nil then
-        error("Error: Vfs get_filesystem: no filesystem associated is associated with the path '" .. rpath .. "'.")
+    if matching_driver == nil then
+        error("Error: Vfs get_filesystem: no driver associated is associated with the path '" .. resolved_path .. "'.")
     end
 
-    return matching_superblock
+    return matching_driver
 end
 
 -- Mount a device to a path
-function Vfs:mount(device, mount_path)
-    self.superblocks[mount_path] = device:mount(mount_path)
+function Vfs:mount(driver, mount_path)
+    self.mount_table[mount_path] = driver
+    driver:mount(mount_path)
+end
+
+-- Unmount a device
+function Vfs:unmount(mount_path)
+	self.mount_table[mount_path] = nil
+end
+
+function Vfs:read(path, offset, length)
+    local driver = Vfs:get_fs_driver(path)
+    local inode = driver:get_inode(path)
+	return driver:read(inode, offset, length)
+end
+
+function Vfs:read_dir(path)
+    local driver = Vfs:get_fs_driver(path)
+	-- local inode = driver:get
+end
+
+function Vfs:write(path, offset, data)
+    local driver = Vfs:get_fs_driver(path)
+    local inode = driver:get_inode(path)
+	return driver:write(inode, offset, data)
+end
+
+function Vfs:create(parent_path, name)
+    local driver = Vfs:get_fs_driver(parent_path)
+    local parent_inode = driver:get_inode(parent_path)
+	return driver:create(parent_inode, name)
 end

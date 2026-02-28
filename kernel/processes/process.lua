@@ -1,22 +1,38 @@
-local process = {}
+---@class Process
+---@field pid number
+---@field ppid number
+---@field ruid number
+---@field euid number
+---@field suid number
+---@field rgid number
+---@field egid number
+---@field sgid number
+---@field supplementary_groups number[]
+---@field capabilities number
+---@field file_descriptors table<number, FileDescriptor>
+---@field current_directory string
+---@field argv string[]
+---@field envp string[]
+---@field dead boolean
+---@field exit_code number
+---@field coroutine coroutine
+Process = {
+							   -- [ Capabilities ]
+	CAP_CHOWN = nil,           --
+	CAP_DAC_OVERRIDE = nil,    --
+	CAP_DAC_READ_SEARCH = nil, --
+	CAP_KILL = nil,            -- Kill arbitrary processes
+	CAP_MKNOD = nil,           -- Create special files
+	CAP_NET_ADMIN = nil,       --
+	CAP_SETGID = nil,          --
+	CAP_SETUID = nil,          --
+	CAP_SYS_ADMIN = nil,       --
+	CAP_SYS_BOOT = nil,        --
+	CAP_SYSLOG = nil,          --
+}
 
--- Process capabilities, see manpage capabilities(7)
--- More may be added later
-                                  -- [ Capabilities ]
-process.CAP_CHOWN = nil           --
-process.CAP_DAC_OVERRIDE = nil    --
-process.CAP_DAC_READ_SEARCH = nil --
-process.CAP_KILL = nil            -- Kill arbitrary processes
-process.CAP_MKNOD = nil           -- Create special files
-process.CAP_NET_ADMIN = nil       --
-process.CAP_SETGID = nil          --
-process.CAP_SETUID = nil          --
-process.CAP_SYS_ADMIN = nil       --
-process.CAP_SYS_BOOT = nil        --
-process.CAP_SYSLOG = nil          --
-
-function process.spawn_initial_process()
-    return {
+function Process:new()
+	local proc = {
         pid  = 0, -- process id
         ppid = 0, -- parent process id
         ruid = 0, -- real uid
@@ -26,63 +42,72 @@ function process.spawn_initial_process()
         egid = 0, -- effective gid
         sgid = 0, -- saved setgid
         supplementary_groups = {},
-        capabilities = 0,
-        file_descriptors = {},
+        -- capabilities = 0,
+        -- file_descriptors = {},
         current_directory = "/",
         argv = {},
+        envp = {},
         dead = false,
         exit_code = nil,
         coroutine = nil,
     }
+    setmetatable(proc, self)
+    self.__index = self
+
+    return proc
 end
 
-function process.setuid(proc, uid)
-    if proc.euid == 0 then
-        proc.ruid = uid
-        proc.euid = uid
-        proc.suid = uid
+function Process:fork()
+
+end
+
+function Process:setuid(uid)
+	if self.euid == 0 then
+        self.ruid = uid
+        self.euid = uid
+        self.suid = uid
     else
-        if uid == proc.ruid then
-            proc.euid = uid
-            proc.suid = uid
+        if uid == self.ruid then
+            self.euid = uid
+            self.suid = uid
         end
     end
 end
 
-function process.seteuid(proc, uid)
-    if proc.euid == 0 then
-        proc.euid = uid
+function Process:seteuid(uid)
+    if self.euid == 0 then
+        self.euid = uid
     else
-        if uid == proc.ruid or uid == proc.euid or uid == proc.suid then
-            proc.euid = uid
+        if uid == self.ruid or uid == self.euid or uid == self.suid then
+            self.euid = uid
         end
     end
 end
 
-function process.setgid(proc, gid)
-    if process.euid == 0 then
-        process.rgid = gid
-        process.egid = gid
-        process.sgid = gid
+function Process:setgid(proc, gid)
+    if self.euid == 0 then
+        self.rgid = gid
+        self.egid = gid
+        self.sgid = gid
     else
-        if gid == process.rgid or gid == process.egid or gid == process.sgid then
-            process.egid = gid
+        if gid == self.rgid or gid == self.egid or gid == self.sgid then
+            self.egid = gid
         end
     end
 end
 
-function process.setegid(proc)
+function Process:setegid(proc)
 
 end
 
-function process.kill(proc)
+function Process:kill(proc)
 
 end
 
-function process.chdir(proc)
+function Process:chdir(proc)
 
 end
 
-function process.spawn(proc)
+function Process:spawn(proc)
 
 end

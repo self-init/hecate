@@ -1,4 +1,4 @@
-local Paths = {}
+Paths = {}
 
 function Paths.iterator(path_string)
     return path_string:gmatch("([^/]+)")
