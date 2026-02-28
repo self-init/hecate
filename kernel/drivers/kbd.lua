@@ -1,3 +1,4 @@
+---@class Kbd: Driver
 Kbd = {}
 
 function Kbd:new(arch)

@@ -1,3 +1,4 @@
+---@class Tty: Driver
 Tty = {}
 
 function Tty:new(arch)

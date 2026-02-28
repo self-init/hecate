@@ -1,4 +1,12 @@
 ---@meta
 
 ---@class Driver
----
+---@field arch Arch
+---@field new function
+---@field mount function
+---@field unmount function
+---@field read_dir function
+---@field get_inode function
+---@field create function
+---@field read function
+---@field write function

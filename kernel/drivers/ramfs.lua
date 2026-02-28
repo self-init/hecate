@@ -1,3 +1,5 @@
+---@class RamFS: Driver
+---@field inodes table<string, Inode>
 RamFS = {}
 
 function RamFS:new(arch)
