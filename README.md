@@ -1,13 +1,27 @@
-# Unix-like Lua kernel
-Simple Unix-like Lua kernel for computercraft. Features a virtual filesystem and process management.
-Currently the main `branch` is not functional. For a functional version please use the `old` branch.
+# Hecate
+Hecate is a kernel-like program written in Lua, intended to be used with computercraft.
+
+## Installation
+
+### ComputerCraft
+Get the latest version of the install script using wget.
+```
+wget https://raw.githubusercontent.com/self-init/hecate/refs/heads/master/cc_install.lua
+```
+Run it.
+```
+cc_install.lua
+```
+
+### Lua
+Download `hecate-gen.lua` from the releases tab and run it:
+```
+lua hecate-gen.lua
+```
 
 ## Building
-To build the project for computercraft, run the following command:
+The project has a build target for each compatible "architecture" of the kernel. To build the kernel, use make.
 
 ```
 make computercraft
 ```
-
-## Installation
-To install the kernel, drag the new file `startup.lua` from the `build` directory into the computercraft computer's terminal. Then run the program by typing `startup` and pressing enter, or by rebooting the computer.
