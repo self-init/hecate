@@ -1,3 +1,4 @@
+---@class GenericArch: Arch
 GenericArch = {}
 
 function GenericArch:new()

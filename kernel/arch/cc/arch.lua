@@ -1,3 +1,4 @@
+---@class CCArch: Arch
 CCArch = {}
 
 function CCArch:new()
