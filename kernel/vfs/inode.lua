@@ -1,3 +1,5 @@
+local Bitwise = require("common.bitwise")
+
 -- Inode
 -- See inode(7) for more information
 -- Each inode represents a file
@@ -6,11 +8,11 @@
 -- and who has read/write/execute permissions for the file
 ---@class Inode
 ---@field id integer
----@field type integer
 ---@field owner integer
 ---@field group integer
 ---@field mode integer
-Inode = {
+---@field size integer
+local Inode = {
                            -- [ Inode type flags ]
     TYPE_SCK     = 0xC000, -- Socket
     TYPE_SYM     = 0xA000, -- Symlink
@@ -46,21 +48,33 @@ Inode = {
     MASK_TYPE    = 0xF000, -- File type
 }
 
+---@param id number
+---@param file_type number
+---@param owner number
+---@param group number
 function Inode.create(id, file_type, owner, group)
-    return {
+	-- default to 666 perms
+    local default_mode = Bitwise.bor(Inode.MASK_READ, Inode.MASK_WRITE)
+
+    -- directories get 777 perms
+	if file_type == Inode.TYPE_DIR then
+		default_mode = Inode.MASK_PERMS
+	end
+
+	return {
         id = id,
-        type = file_type,
         links = 0,
+        size = 0,
         owner = owner,
         group = group,
-        mode = 0x01FF,
+        mode = Bitwise.bor(file_type, default_mode),
     }
 end
 
 function Inode.get_perms(ind, rwe_mask, uid, gids)
     local perms = ind.mode
     if uid ~= ind.owner then
-        perms = bit32.band(perms, bit32.bnot(Inode.MASK_OWNER))
+        perms = Bitwise.band(perms, Bitwise.bnot(Inode.MASK_OWNER))
     end
 
     local is_in_group = false
@@ -72,12 +86,14 @@ function Inode.get_perms(ind, rwe_mask, uid, gids)
     end
 
     if not is_in_group then
-        perms = bit32.band(perms, bit32.bnot(Inode.MASK_GROUP))
+        perms = Bitwise.band(perms, Bitwise.bnot(Inode.MASK_GROUP))
     end
 
-    return bit32.btest(perms, rwe_mask)
+    return Bitwise.btest(perms, rwe_mask)
 end
 
 function Inode.get_file_type(ind, flag)
-     return bit32.btest(ind.mode, flag)
+     return Bitwise.btest(ind.mode, flag)
 end
+
+return Inode

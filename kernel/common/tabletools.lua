@@ -1,6 +1,6 @@
 -- Tabletools kernel library
 -- Tools used for manipulating tables
-TableTools = {}
+local TableTools = {}
 
 function TableTools.freeze(original_table)
     local proxy = {}
@@ -56,3 +56,5 @@ function TableTools.find(t, search)
     end
     return -1
 end
+
+return TableTools

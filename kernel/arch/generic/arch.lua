@@ -1,5 +1,5 @@
 ---@class GenericArch: Arch
-GenericArch = {}
+local GenericArch = {}
 
 function GenericArch:new()
     local genarch = {
@@ -22,3 +22,5 @@ end
 function GenericArch:tty_write(data)
 	io.write(data)
 end
+
+return GenericArch

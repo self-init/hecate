@@ -1,45 +1,39 @@
----@class RamFS: Driver
----@field inodes table<string, Inode>
-RamFS = {}
+local BaseFS = require("drivers.basefs")
 
+---@class RamFS: BaseFS
+---@field data table<integer, string>
+local RamFS = BaseFS:new()
+
+---@param arch Arch
+---@return RamFS
 function RamFS:new(arch)
-    local ramfs = {
-        arch = arch,
-        inodes = {}
-    }
-    setmetatable(ramfs, self)
-    self.__index = self
-
-    return ramfs
+    local fs = BaseFS.new(self, arch)
+    fs.data = {}
+    return fs
 end
 
-function RamFS:mount(resolved_path)
-	-- self.inodes[resolved_path] = Inode.create(
 
-	-- )
-	return self.inodes[resolved_path]
-end
-
-function RamFS:unmount(resolved_path)
-	self.inodes[resolved_path] = nil
-end
-
-function RamFS:read_dir(resolved_path)
-
-end
-
-function RamFS:get_inode(path)
-
-end
-
-function RamFS:create(parent_inode, name)
-
-end
-
+---@param inode Inode
+---@param offset integer
+---@param length integer
 function RamFS:read(inode, offset, length)
-
+    local contents = self.data[inode.id] or ""
+    return contents:sub(offset + 1, offset + length)
 end
 
+---@param inode Inode
+---@param offset integer
+---@param data any
 function RamFS:write(inode, offset, data)
-
+    local contents = self.data[inode.id] or ""
+    local prefix = contents:sub(1, offset)
+    if #prefix < offset then
+        prefix = prefix .. string.rep("\0", offset - #prefix)
+    end
+    local suffix = contents:sub(offset + #data + 1)
+    self.data[inode.id] = prefix .. data .. suffix
+    inode.size = #self.data[inode.id]
+    return #data
 end
+
+return RamFS

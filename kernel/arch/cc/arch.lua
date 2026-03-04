@@ -1,5 +1,5 @@
 ---@class CCArch: Arch
-CCArch = {}
+local CCArch = {}
 
 function CCArch:new()
     local ccarch = {
@@ -24,3 +24,5 @@ end
 function CCArch:init(kernel)
 
 end
+
+return CCArch

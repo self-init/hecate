@@ -1,4 +1,4 @@
-Paths = {}
+local Paths = {}
 
 function Paths.iterator(path_string)
     return path_string:gmatch("([^/]+)")
@@ -15,21 +15,37 @@ end
 -- function paths.getDepth(pathString)
 --     return #paths.split(pathString)
 -- end
-
+--
+---@param path1 string
 function Paths.join(path1, ...)
     local joined_path = path1
-    for _,path in ipairs(...) do
-        local joined_suffix = joined_path:gsub(#joined_path) "/"
-        local path_prefix = path:gsub(1,1) == "/"
+    for _, path in ipairs({...}) do
+        local joined_suffix = joined_path:sub(-1) == "/"
+        local path_prefix = path:sub(1, 1) == "/"
         if joined_suffix and path_prefix then
-            joined_path = joined_path..path:gsub(2)
+            joined_path = joined_path .. path:sub(2)
         elseif joined_suffix or path_prefix then
-            joined_path = joined_path..path
+            joined_path = joined_path .. path
         else
-            joined_path = joined_path.."/"..path
+            joined_path = joined_path .. "/" .. path
         end
     end
     return joined_path
+end
+
+-- Returns all parent directories for a path in order from root.
+-- Used for checking execute permission during path traversal.
+-- e.g., "/a/b/c" -> {"/", "/a", "/a/b"}
+-- e.g., "/a"     -> {"/"}
+-- e.g., "/"      -> {}
+function Paths.parent_dirs(path_string)
+    local parts = Paths.split(path_string)
+    if #parts == 0 then return {} end
+    local dirs = {"/"}
+    for i = 1, #parts - 1 do
+        table.insert(dirs, "/" .. table.concat(parts, "/", 1, i))
+    end
+    return dirs
 end
 
 function Paths.resolve(path_string, working_directory_string)
@@ -58,3 +74,5 @@ function Paths.resolve(path_string, working_directory_string)
     local resolvedPath = table.concat(pathParts, "/")
     return "/"..resolvedPath
 end
+
+return Paths

@@ -7,6 +7,7 @@
 ---@field unmount function
 ---@field read_dir function
 ---@field get_inode function
----@field create function
+---@field create_file function
+---@field destroy_file function
 ---@field read function
 ---@field write function

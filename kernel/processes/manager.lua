@@ -5,7 +5,7 @@
 ---@field queues table<number, Process[]>
 ---@field meta table<number, { queue_level: number, ticks_used: number }>
 ---@field tick_count number
-ProcessManager = {}
+local ProcessManager = {}
 
 -- MLFQ configuration
 local NUM_QUEUES     = 3
@@ -127,3 +127,5 @@ function ProcessManager:step()
 
     return true
 end
+
+return ProcessManager
