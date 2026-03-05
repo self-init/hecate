@@ -25,3 +25,6 @@ The project has a build target for each compatible "architecture" of the kernel.
 ```
 make computercraft
 ```
+
+## Notes
+Some functionality is limited depending on the interpreter used to run the program. The [Cobalt](https://github.com/cc-tweaked/Cobalt) used by computercraft runtime has better support for multitasking processes because it allows yielding from anywhere within a program. Other interpreters may see reduced functionality, like the kernel freezing when a program enters an infinite loop.

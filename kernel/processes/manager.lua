@@ -5,12 +5,24 @@
 ---@field queues table<number, Process[]>
 ---@field meta table<number, { queue_level: number, ticks_used: number }>
 ---@field tick_count number
+---@field preemptive boolean
 local ProcessManager = {}
 
 -- MLFQ configuration
-local NUM_QUEUES     = 3
-local QUANTA         = {2, 4, 8}  -- yields per queue before demotion
-local BOOST_INTERVAL = 50         -- steps between starvation-prevention boosts
+local NUM_QUEUES        = 3
+local QUANTA            = {2, 4, 8}  -- slices per queue before demotion
+local BOOST_INTERVAL    = 50         -- steps between starvation-prevention boosts
+local INSTRUCTION_QUOTA = 500        -- VM instructions per slice (preemptive only)
+
+-- Returns true if the runtime allows coroutine.yield from inside a debug hook.
+-- PUC-Rio Lua 5.x does not; ComputerCraft's Cobalt does.
+local function _detect_preemption()
+    local co = coroutine.create(function() while true do end end)
+    debug.sethook(co, coroutine.yield, "", 50)
+    local ok = coroutine.resume(co)
+    debug.sethook(co, nil)
+    return ok and coroutine.status(co) == "suspended"
+end
 
 function ProcessManager:new(arch)
     local procman = {
@@ -22,6 +34,7 @@ function ProcessManager:new(arch)
         -- pid -> { queue_level (0-based), ticks_used }
         meta           = {},
         tick_count     = 0,
+        preemptive     = _detect_preemption(),
     }
     setmetatable(procman, self)
     self.__index = self
@@ -94,7 +107,13 @@ function ProcessManager:step()
     self.active_process = proc
     local m = self.meta[proc.pid]
 
+    if self.preemptive then
+        debug.sethook(proc.coroutine, coroutine.yield, "", INSTRUCTION_QUOTA)
+    end
     local ok = coroutine.resume(proc.coroutine)
+    if self.preemptive then
+        debug.sethook(proc.coroutine, nil)
+    end
 
     self.active_process = nil
 

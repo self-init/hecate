@@ -39,20 +39,20 @@ if _VERSION == "Lua 5.3" or _VERSION == "Lua 5.4" then
         return Bitwise.bor(Bitwise.rshift(a, b), Bitwise.lshift(a, 32 - b))
     end
 
-elseif Bitwise then
+elseif bit32 then
 
-    Bitwise.band    = Bitwise.band
-    Bitwise.bor     = Bitwise.bor
-    Bitwise.bxor    = Bitwise.bxor
-    Bitwise.bnot    = Bitwise.bnot
-    Bitwise.lshift  = Bitwise.lshift
-    Bitwise.rshift  = Bitwise.rshift
-    Bitwise.arshift = Bitwise.arshift
-    Bitwise.btest   = Bitwise.btest
-    Bitwise.extract = Bitwise.extract
-    Bitwise.replace = Bitwise.replace
-    Bitwise.lrotate = Bitwise.lrotate
-    Bitwise.rrotate = Bitwise.rrotate
+    Bitwise.band    = bit32.band
+    Bitwise.bor     = bit32.bor
+    Bitwise.bxor    = bit32.bxor
+    Bitwise.bnot    = bit32.bnot
+    Bitwise.lshift  = bit32.lshift
+    Bitwise.rshift  = bit32.rshift
+    Bitwise.arshift = bit32.arshift
+    Bitwise.btest   = bit32.btest
+    Bitwise.extract = bit32.extract
+    Bitwise.replace = bit32.replace
+    Bitwise.lrotate = bit32.lrotate
+    Bitwise.rrotate = bit32.rrotate
 
 else
     error("common.bitwise requires Lua 5.2 or newer")

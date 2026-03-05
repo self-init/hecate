@@ -5,6 +5,7 @@ local Paths = require("common.paths")
 ---@field mount_table table<string, Driver>
 local Vfs = {}
 
+---@return Vfs
 function Vfs:new()
     local vfs = {
         mount_table = {},
@@ -15,13 +16,17 @@ function Vfs:new()
     return vfs
 end
 
--- Gets an Inode from the path.
+---Gets an Inode from the path.
+---@param resolved_path string
+---@return Inode
 function Vfs:namei(resolved_path)
 	local driver = Vfs:get_fs_driver(resolved_path)
 	return driver:get_inode(resolved_path)
 end
 
--- Get the filesystem/device that a file is from.
+---Get the filesystem/device that a file is from.
+---@param resolved_path string
+---@return Driver
 function Vfs:get_fs_driver(resolved_path)
     local matching_mount_path = ""
     local matching_driver
@@ -40,13 +45,17 @@ function Vfs:get_fs_driver(resolved_path)
     return matching_driver
 end
 
--- Mount a device to a path
+---Mount a device to a path
+---@param driver Driver
+---@param mount_path string
+---@return Inode
 function Vfs:mount(driver, mount_path)
     self.mount_table[mount_path] = driver
     return driver:mount(mount_path)
 end
 
--- Unmount a device
+---Unmount a device
+---@param mount_path string
 function Vfs:unmount(mount_path)
 	self.mount_table[mount_path] = nil
 end
@@ -54,6 +63,8 @@ end
 -- Checks execute permission on every parent directory of path.
 -- Errors with EACCES if traversal is denied on any directory.
 -- Root (euid == 0) bypasses all traversal checks.
+---@param process Process
+---@param path string
 function Vfs:check_path_traversal(process, path)
     if process.euid == 0 then return end
     local gids = process:get_gids()
@@ -69,6 +80,10 @@ end
 -- Checks a permission mask on a single inode for the given process.
 -- Errors with EACCES if permission is denied.
 -- Root (euid == 0) bypasses all inode permission checks.
+---@param process Process
+---@param inode Inode
+---@param mask integer
+---@param path string
 function Vfs:check_inode_perm(process, inode, mask, path)
     if process.euid == 0 then return end
     if not Inode.get_perms(inode, mask, process.euid, process:get_gids()) then
@@ -76,20 +91,28 @@ function Vfs:check_inode_perm(process, inode, mask, path)
     end
 end
 
-function Vfs:read(process, path, offset, length)
+---@param process Process
+---@param path string
+---@param offset integer
+---@param length integer
+---@return any
+function Vfs:read_file(process, path, offset, length)
     self:check_path_traversal(process, path)
     local driver = self:get_fs_driver(path)
     local inode = driver:get_inode(path)
     self:check_inode_perm(process, inode, Inode.MASK_READ, path)
-	return driver:read(inode, offset, length)
+	return driver:read_file(inode, offset, length)
 end
 
+---@param process Process
+---@param path string
+---@return table<integer, string>
 function Vfs:read_dir(process, path)
     self:check_path_traversal(process, path)
     local driver = self:get_fs_driver(path)
     local inode = driver:get_inode(path)
     self:check_inode_perm(process, inode, Inode.MASK_READ, path)
-    local entries = driver:read_dir(path)
+    local entries = driver:read_dir(inode)
 
     -- Inject names of direct child mount points not already in entries
     local entry_set = {}
@@ -109,19 +132,19 @@ function Vfs:read_dir(process, path)
     return entries
 end
 
-function Vfs:write(process, path, offset, data)
+function Vfs:write_file(process, path, offset, data)
     self:check_path_traversal(process, path)
     local driver = self:get_fs_driver(path)
     local inode = driver:get_inode(path)
     self:check_inode_perm(process, inode, Inode.MASK_WRITE, path)
-	return driver:write(inode, offset, data)
+	return driver:write_file(inode, offset, data)
 end
 
-function Vfs:create(process, parent_path, name, type)
+function Vfs:create_file(process, parent_path, name, type)
     self:check_path_traversal(process, parent_path)
     local driver = self:get_fs_driver(parent_path)
     local parent_inode = driver:get_inode(parent_path)
-    if parent_inode.type ~= Inode.TYPE_DIR then
+    if Inode.get_file_type(parent_inode, Inode.TYPE_DIR) then
         error("ENOTDIR: " .. parent_path)
     end
     self:check_inode_perm(process, parent_inode, Inode.MASK_WRITE, parent_path)

@@ -1,12 +1,14 @@
 local Inode = require("vfs.inode")
 
----@class BaseChrDev
+---@class BaseChrDev: Driver
 ---@field path string
 ---@field inode Inode
 ---@field coroutine thread
 ---@field queue table
 local BaseChrDev = {}
 
+---@param arch Arch
+---@return BaseChrDev
 function BaseChrDev:new(arch)
     local bcd = {
         arch = arch,

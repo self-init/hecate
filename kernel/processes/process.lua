@@ -119,7 +119,7 @@ function Process:exec(path)
     vfs:check_inode_perm(self, inode, Inode.MASK_EXEC, resolved_path)
 
     -- Read file as the kernel, bypassing the process's read permission
-    local code = driver:read(inode, 0, inode.size)
+    local code = driver:read_file(inode, 0, inode.size)
 
     local chunk, err = load(code, "@" .. resolved_path, "t", self:make_env())
     if not chunk then

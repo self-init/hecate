@@ -2,6 +2,6 @@
   "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
   "runtime.version": "Lua 5.2",
   "format.enable": true,
-  "workspace.ignoreDir": ["output"],
-  "hint.enable": true
+  "hint.enable": true,
+  "workspace.useGitIgnore": true
 }
