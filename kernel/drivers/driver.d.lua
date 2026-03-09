@@ -56,7 +56,7 @@ function Driver:write_file(inode, offset, data) end
 ---@param inode Inode File to operate on.
 ---@param request integer Request code (driver-defined).
 ---@param arg any Request argument.
----@return any Result, or nil if the request is not supported.
+---@return any Result or nil if the request is not supported.
 function Driver:ioctl(inode, request, arg) end
 
 return Driver

@@ -1,26 +1,8 @@
 local BaseChrDev = require("drivers.common.basechrdev")
 local Bitwise    = require("common.bitwise")
+local Termios = require("drivers.common.tty.termios")
 local band = Bitwise.band
 local bor  = Bitwise.bor
-
--- lflag bits
-local ISIG   = 0x0001  -- signal generation (^C, ^Z)
-local ICANON = 0x0002  -- canonical (line-buffered) input
-local ECHO   = 0x0008  -- echo input characters
-local ECHOE  = 0x0010  -- echo erase as BS-SP-BS
-
--- iflag bits
-local ICRNL  = 0x0100  -- map CR to NL on input
-
--- oflag bits
-local OPOST  = 0x0001  -- enable output processing
-local ONLCR  = 0x0004  -- map NL to CR-NL on output
-
--- c_cc indices
-local VINTR  = 1  -- interrupt char (^C, byte 3)
-local VERASE = 2  -- erase char    (^H, byte 8)
-local VKILL  = 3  -- kill line     (^U, byte 21)
-local VEOF   = 4  -- end-of-file   (^D, byte 4)
 
 -- Export constants so subclasses and callers can reference them
 ---@class BaseTty: BaseChrDev | TtyInterface
@@ -31,25 +13,14 @@ local VEOF   = 4  -- end-of-file   (^D, byte 4)
 ---@field _esc_buf   string  accumulated CSI parameter/intermediate bytes
 local BaseTty = BaseChrDev:new()
 
-BaseTty.ISIG   = ISIG
-BaseTty.ICANON = ICANON
-BaseTty.ECHO   = ECHO
-BaseTty.ECHOE  = ECHOE
-BaseTty.ICRNL  = ICRNL
-BaseTty.OPOST  = OPOST
-BaseTty.ONLCR  = ONLCR
-BaseTty.VINTR  = VINTR
-BaseTty.VERASE = VERASE
-BaseTty.VKILL  = VKILL
-BaseTty.VEOF   = VEOF
 
 local function default_termios()
     return {
-        iflag = ICRNL,
-        oflag = bor(OPOST, ONLCR),
+        iflag = Termios.ICRNL,
+        oflag = bor(Termios.OPOST, Termios.ONLCR),
         cflag = 0,
-        lflag = bor(bor(bor(ICANON, ECHO), ECHOE), ISIG),
-        cc    = { [VINTR] = 3, [VERASE] = 8, [VKILL] = 21, [VEOF] = 4 },
+        lflag = bor(bor(bor(Termios.ICANON, Termios.ECHO), Termios.ECHOE), Termios.ISIG),
+        cc    = { [Termios.VINTR] = 3, [Termios.VERASE] = 8, [Termios.VKILL] = 21, [Termios.VEOF] = 4 },
     }
 end
 
@@ -160,8 +131,8 @@ end
 ---@param data any
 function BaseTty:write_file(inode, offset, data)
     local s = tostring(data)
-    if band(self.termios.oflag, OPOST) ~= 0 then
-        if band(self.termios.oflag, ONLCR) ~= 0 then
+    if band(self.termios.oflag, Termios.OPOST) ~= 0 then
+        if band(self.termios.oflag, Termios.ONLCR) ~= 0 then
             s = s:gsub("\n", "\r\n")
         end
     end
@@ -196,44 +167,44 @@ function BaseTty:push_input(char)
     local cc    = self.termios.cc
 
     -- ICRNL: map carriage return to newline
-    if band(self.termios.iflag, ICRNL) ~= 0 and char == "\r" then
+    if band(self.termios.iflag, Termios.ICRNL) ~= 0 and char == "\r" then
         char = "\n"
     end
 
-    if band(lflag, ICANON) ~= 0 then
+    if band(lflag, Termios.ICANON) ~= 0 then
         local b = char:byte()
 
-        if b == cc[VERASE] then
+        if b == cc[Termios.VERASE] then
             if #self.input_buf > 0 then
                 self.input_buf = self.input_buf:sub(1, -2)
-                if band(lflag, ECHO) ~= 0 and band(lflag, ECHOE) ~= 0 then
+                if band(lflag, Termios.ECHO) ~= 0 and band(lflag, Termios.ECHOE) ~= 0 then
                     self:_echo_erase(1)
                 end
             end
 
-        elseif b == cc[VKILL] then
-            if band(lflag, ECHO) ~= 0 then
+        elseif b == cc[Termios.VKILL] then
+            if band(lflag, Termios.ECHO) ~= 0 then
                 self:_echo_erase(#self.input_buf)
             end
             self.input_buf = ""
 
-        elseif b == cc[VEOF] then
+        elseif b == cc[Termios.VEOF] then
             table.insert(self.read_queue, self.input_buf)
             self.input_buf = ""
 
         elseif char == "\n" then
             self.input_buf = self.input_buf .. char
-            if band(lflag, ECHO) ~= 0 then self:write_file(nil, 0, char) end
+            if band(lflag, Termios.ECHO) ~= 0 then self:write_file(nil, 0, char) end
             table.insert(self.read_queue, self.input_buf)
             self.input_buf = ""
 
         else
             self.input_buf = self.input_buf .. char
-            if band(lflag, ECHO) ~= 0 then self:write_file(nil, 0, char) end
+            if band(lflag, Termios.ECHO) ~= 0 then self:write_file(nil, 0, char) end
         end
 
     else
-        if band(lflag, ECHO) ~= 0 then self:write_file(nil, 0, char) end
+        if band(lflag, Termios.ECHO) ~= 0 then self:write_file(nil, 0, char) end
         table.insert(self.read_queue, char)
     end
 end
