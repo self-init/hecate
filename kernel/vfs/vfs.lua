@@ -97,6 +97,7 @@ end
 ---@param length integer
 ---@return any
 function Vfs:read_file(process, path, offset, length)
+    path = Paths.resolve(path, process.current_directory)
     self:check_path_traversal(process, path)
     local driver = self:get_fs_driver(path)
     local inode = driver:get_inode(path)
@@ -108,6 +109,7 @@ end
 ---@param path string
 ---@return table<integer, string>
 function Vfs:read_dir(process, path)
+    path = Paths.resolve(path, process.current_directory)
     self:check_path_traversal(process, path)
     local driver = self:get_fs_driver(path)
     local inode = driver:get_inode(path)
@@ -133,6 +135,7 @@ function Vfs:read_dir(process, path)
 end
 
 function Vfs:write_file(process, path, offset, data)
+    path = Paths.resolve(path, process.current_directory)
     self:check_path_traversal(process, path)
     local driver = self:get_fs_driver(path)
     local inode = driver:get_inode(path)
@@ -141,6 +144,7 @@ function Vfs:write_file(process, path, offset, data)
 end
 
 function Vfs:create_file(process, parent_path, name, type)
+    parent_path = Paths.resolve(parent_path, process.current_directory)
     self:check_path_traversal(process, parent_path)
     local driver = self:get_fs_driver(parent_path)
     local parent_inode = driver:get_inode(parent_path)

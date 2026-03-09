@@ -3,7 +3,11 @@ local NativeArch = require("arch.native.arch")
 
 local function main()
     local kernel = Kernel:new(NativeArch:new())
-    kernel:start()
+    local ok, err = pcall(kernel.start, kernel)
+    os.execute("stty sane 2>/dev/null")
+    if not ok then
+        io.write("\nkernel panic: " .. tostring(err) .. "\n")
+    end
 end
 
 main()

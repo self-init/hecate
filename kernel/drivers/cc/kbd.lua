@@ -8,7 +8,7 @@ function Kbd:push_event(event)
 end
 
 function Kbd:read_file(inode, offset, length)
-	return table.remove(self.queue, 1)
+	return table.remove(self.arch.kbd_queue, 1)
 end
 
 return Kbd

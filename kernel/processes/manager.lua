@@ -110,7 +110,7 @@ function ProcessManager:step()
     if self.preemptive then
         debug.sethook(proc.coroutine, coroutine.yield, "", INSTRUCTION_QUOTA)
     end
-    local ok = coroutine.resume(proc.coroutine)
+    local ok, err = coroutine.resume(proc.coroutine)
     if self.preemptive then
         debug.sethook(proc.coroutine, nil)
     end
@@ -118,6 +118,10 @@ function ProcessManager:step()
     self.active_process = nil
 
     if not ok then
+        local stderr = proc.file_descriptors[2]
+        if stderr then
+            stderr:write(tostring(err) .. "\n")
+        end
         proc.dead      = true
         proc.exit_code = -1
         self.meta[proc.pid] = nil

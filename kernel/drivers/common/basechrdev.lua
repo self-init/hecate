@@ -52,14 +52,32 @@ function BaseChrDev:create_file(parent_inode, name, type)
 end
 
 function BaseChrDev:destroy_file(path)
-	self.inode = nil
+	if path == self.path then
+		self.inode = nil
+	end
 end
 
+---@param inode Inode
+---@param offset integer
+---@param length integer
 function BaseChrDev:read(inode, offset, length)
 
 end
 
+---@param inode Inode
+---@param offset integer
+function BaseChrDev:_read_byte(inode, offset)
+
+end
+
+---@param inode Inode
+---@param offset integer
+---@param data string | table
 function BaseChrDev:write(inode, offset, data)
+
+end
+
+function BaseChrDev:_write_byte(inode, offset, byte)
 
 end
 

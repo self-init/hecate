@@ -2,6 +2,9 @@ local ProcessInterface = require("processes.interface")
 local Paths = require("common.paths")
 local Bitwise = require("common.bitwise")
 local Inode = require("vfs.inode")
+local FileDescriptor = require("vfs.fd")
+local Bitwise        = require("common.bitwise")
+local band           = Bitwise.band
 
 ---@class Process
 ---@field pid number
@@ -37,7 +40,7 @@ local Process = {
 	CAP_SYSLOG = nil,          --
 }
 
-function Process:new(kernel, path)
+function Process:new(kernel, path, argv)
 	local proc = {
         pid  = 0, -- process id
         ppid = 0, -- parent process id
@@ -48,10 +51,9 @@ function Process:new(kernel, path)
         egid = 0, -- effective gid
         sgid = 0, -- saved setgid
         supplementary_groups = {},
-        -- capabilities = 0,
-        -- file_descriptors = {},
+        file_descriptors = {},
         current_directory = "/",
-        argv = {},
+        argv = argv or {},
         envp = {},
         dead = false,
         exit_code = nil,
@@ -61,8 +63,67 @@ function Process:new(kernel, path)
     setmetatable(proc, self)
     self.__index = self
 
+    proc:_open_tty_fds()
     proc:exec(path)
     return proc
+end
+
+-- Pre-open /dev/tty as stdin(0), stdout(1), stderr(2).
+function Process:_open_tty_fds()
+    local vfs = self.kernel.vfs
+    local driver = vfs:get_fs_driver("/dev/tty")
+    local inode  = driver:get_inode("/dev/tty")
+    for n = 0, 2 do
+        self.file_descriptors[n] = FileDescriptor:new(driver, inode, "/dev/tty", FileDescriptor.O_RDWR)
+    end
+end
+
+-- Open a file and return its fd number.
+---@param path  string
+---@param flags integer  O_RDONLY | O_WRONLY | O_RDWR | O_CREAT | O_TRUNC | O_APPEND
+---@return integer  fd number
+function Process:open_fd(path, flags)
+    local resolved = Paths.resolve(path, self.current_directory)
+    local vfs      = self.kernel.vfs
+    local driver   = vfs:get_fs_driver(resolved)
+    local inode    = driver:get_inode(resolved)
+
+    if inode == nil then
+        if band(flags, FileDescriptor.O_CREAT) ~= 0 then
+            local parent_path = resolved:match("^(.*)/[^/]+$") or "/"
+            local name        = resolved:match("[^/]+$")
+            local parent      = driver:get_inode(parent_path)
+            inode = driver:create_file(parent, name, Inode.TYPE_REG)
+        else
+            error("ENOENT: " .. resolved)
+        end
+    end
+
+    vfs:check_path_traversal(self, resolved)
+    if band(flags, FileDescriptor.O_RDWR) ~= 0 or flags == FileDescriptor.O_RDONLY then
+        vfs:check_inode_perm(self, inode, Inode.MASK_READ, resolved)
+    end
+    if band(flags, FileDescriptor.O_WRONLY) ~= 0 or band(flags, FileDescriptor.O_RDWR) ~= 0 then
+        vfs:check_inode_perm(self, inode, Inode.MASK_WRITE, resolved)
+    end
+
+    if band(flags, FileDescriptor.O_TRUNC) ~= 0 then
+        driver:write_file(inode, 0, "")
+        inode.size = 0
+    end
+
+    -- Find lowest unused fd ≥ 3
+    local n = 3
+    while self.file_descriptors[n] do n = n + 1 end
+
+    self.file_descriptors[n] = FileDescriptor:new(driver, inode, resolved, flags)
+    return n
+end
+
+-- Close an open file descriptor.
+---@param n integer
+function Process:close_fd(n)
+    self.file_descriptors[n] = nil
 end
 
 -- Builds the sandboxed global environment for a process.
@@ -93,6 +154,20 @@ function Process:make_env()
         bitwise   = Bitwise,
     }
 
+    -- File descriptor open flags and seek constants
+    env.O_RDONLY = FileDescriptor.O_RDONLY
+    env.O_WRONLY = FileDescriptor.O_WRONLY
+    env.O_RDWR   = FileDescriptor.O_RDWR
+    env.O_CREAT  = FileDescriptor.O_CREAT
+    env.O_TRUNC  = FileDescriptor.O_TRUNC
+    env.O_APPEND = FileDescriptor.O_APPEND
+    env.SEEK_SET = FileDescriptor.SEEK_SET
+    env.SEEK_CUR = FileDescriptor.SEEK_CUR
+    env.SEEK_END = FileDescriptor.SEEK_END
+    env.O_NONBLOCK = FileDescriptor.O_NONBLOCK
+
+    env.argv = self.argv
+
     -- Merge ProcessInterface functions in as globals
     for k, v in pairs(ProcessInterface.new(self)) do
         env[k] = v
@@ -108,6 +183,10 @@ function Process:exec(path)
 
     local driver = vfs:get_fs_driver(resolved_path)
     local inode = driver:get_inode(resolved_path)
+
+    if inode == nil then
+        error("ENOENT: " .. resolved_path)
+    end
 
     -- Must be a regular file
     if not Inode.get_file_type(inode, Inode.TYPE_REG) then

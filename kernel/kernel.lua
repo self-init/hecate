@@ -1,6 +1,5 @@
 local Vfs = require("vfs.vfs")
 local ProcessManager = require("processes.manager")
-local Tty = require("drivers.agnostic.tty")
 local RamFS = require("drivers.agnostic.ramfs")
 local SerialFS = require("drivers.agnostic.serialfs")
 local Process = require("processes.process")
@@ -30,8 +29,6 @@ function Kernel:start()
 	self.vfs:mount(rootfs, "/")
 	local devfs = RamFS:new(self.arch)
     self.vfs:mount(devfs, "/dev")
-    self.vfs:mount(Tty:new(self.arch), "/dev/tty")
-
 	-- Mount devices
 	self.arch:init(self)
 
