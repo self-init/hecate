@@ -29,12 +29,14 @@ function Inode.create(id, file_type, owner, group)
 	end
 
 	return {
-        id = id,
-        links = 0,
-        size = 0,
-        owner = owner,
-        group = group,
-        mode = Bitwise.bor(file_type, default_mode),
+        id       = id,
+        links    = 1,       -- number of directory entries pointing to this inode
+        size     = 0,
+        refs     = 0,       -- count of open FileDescriptors referencing this inode
+        unlinked = false,   -- true if destroy_file was called while refs > 0
+        owner    = owner,
+        group    = group,
+        mode     = Bitwise.bor(file_type, default_mode),
     }
 end
 
