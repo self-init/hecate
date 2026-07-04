@@ -3,5 +3,14 @@
   "runtime.version": "Lua 5.2",
   "format.enable": true,
   "hint.enable": true,
-  "workspace.useGitIgnore": true
+  "workspace.useGitIgnore": true,
+	"runtime.path": [
+	    "kernel/?.lua",
+	    "kernel/?/init.lua"
+	],
+	"workspace.library": [],
+	"workspace.userThirdParty": [],
+	"workspace.rootPath": ".",
+	"runtime.pathStrict": false,
+	"workspace.checkThirdParty": false
 }

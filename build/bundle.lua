@@ -37,9 +37,11 @@ local function read_file(path)
     return content
 end
 
--- Convert a module name like "utils.helpers" → "utils/helpers.lua"
-local function module_to_path(mod_name)
-    return search_dir .. mod_name:gsub("%.", "/") .. ".lua"
+-- Convert a module name to candidate file paths, in resolution order:
+--   "utils.helpers" → "utils/helpers.lua", then "utils/helpers/init.lua"
+local function module_to_paths(mod_name)
+    local base = search_dir .. mod_name:gsub("%.", "/")
+    return { base .. ".lua", base .. "/init.lua" }
 end
 
 -- Scan Lua source for require() calls and return a list of module names.
@@ -77,8 +79,11 @@ local function resolve(mod_name)
         return
     end
 
-    local path = module_to_path(mod_name)
-    local src, err = read_file(path)
+    local src, err
+    for _, path in ipairs(module_to_paths(mod_name)) do
+        src, err = read_file(path)
+        if src then break end
+    end
     if not src then
         -- Not a local module (e.g. a system library) — skip it
         io.stderr:write("Skipping external/missing module: " .. mod_name .. " (" .. err .. ")\n")

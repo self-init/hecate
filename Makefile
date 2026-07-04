@@ -1,4 +1,5 @@
 out = output
+docsdir = docs
 
 # ComputerCraft Variables
 cc_kernel = $(out)/hecate-cc.lua
@@ -14,7 +15,9 @@ kernel_file = $(out)/hecate-kernel.lua
 all_sources := $(shell find kernel -type f -name "*.lua")
 root_files := $(shell find rootfs -type f -name "*.lua")
 
-all: kernel native-all computercraft-all rootfs
+all: kernel native-all computercraft-all rootfs documentation
+
+documentation: $(docsdir)/doc.md $(docsdir)/doc.json
 
 rootfs: $(rootfs)
 
@@ -58,5 +61,12 @@ $(kernel_file): $(all_sources) $(out)
 $(out):
 	mkdir $(out)
 
+$(docsdir)/doc.md $(docsdir)/doc.json &: $(all_sources) $(docsdir)
+	lua-language-server --doc=. --doc_out_path=./$(docsdir)
+
+$(docsdir):
+	mkdir $(docsdir)
+
 clean:
 	rm -rf $(out)
+	rm -rf $(docsdir)
