@@ -7,7 +7,10 @@ local internal_commands = {
 		if #tokens < 2 then
 
 		else
-			chdir(tokens[2])
+            local ok, err = pcall(chdir, tokens[2])
+			if not ok then
+				write(2, "cd: " .. tostring(err) .. "\n")
+			end
 		end
 	end
 }
