@@ -94,6 +94,17 @@ end
 ---@param inode Inode
 function SerialFS:destroy_file(inode)
     BaseFS.destroy_file(self, inode)
+    if not inode.unlinked then
+        -- Inode was freed immediately (no open fds); clean up data now.
+        self.data[inode.id] = nil
+    end
+    self:_save()
+end
+
+-- Called by FileDescriptor:close() when the last fd on an unlinked inode closes.
+---@param inode Inode
+function SerialFS:_free_inode(inode)
+    BaseFS._free_inode(self, inode)
     self.data[inode.id] = nil
     self:_save()
 end

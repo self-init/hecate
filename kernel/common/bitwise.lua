@@ -1,8 +1,9 @@
 local TableTools = require("common.tabletools")
 
+---@class Bitwise
 local Bitwise = {}
 
-if _VERSION == "Lua 5.3" or _VERSION == "Lua 5.4" then
+if _VERSION == "Lua 5.3" or _VERSION == "Lua 5.4" or _VERSION == "Lua 5.5" then
 
     Bitwise.band    = load("return function(a,b) return a & b  end")()
     Bitwise.bor     = load("return function(a,b) return a | b  end")()

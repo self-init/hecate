@@ -1,4 +1,6 @@
 local Inode = require("vfs.inode")
+local InodeModeFlags = require("vfs.inode.modeflags")
+local Error = require("common.error")
 
 ---@class BaseChrDev: Driver
 ---@field path string
@@ -27,7 +29,7 @@ function BaseChrDev:mount(resolved_path)
 	self.path = resolved_path
 	self.inode = Inode.create(
         0,
-        Inode.TYPE_CHR,
+        InodeModeFlags.TYPE_CHR,
         0,
 		0
     )
@@ -39,8 +41,10 @@ function BaseChrDev:unmount(resolved_path)
 	self.inode = nil
 end
 
-function BaseChrDev:read_dir(resolved_path)
-
+---@param inode Inode
+---@return table<integer, string>
+function BaseChrDev:read_dir(inode)
+	return {}
 end
 
 function BaseChrDev:get_inode(path)
@@ -48,13 +52,22 @@ function BaseChrDev:get_inode(path)
 end
 
 function BaseChrDev:create_file(parent_inode, name, type)
-    error("ENOTDIR: " .. self.path)
+	Error.throw(Error.ENOTDIR, self.path)
 end
 
 function BaseChrDev:destroy_file(path)
 	if path == self.path then
 		self.inode = nil
 	end
+end
+
+function BaseChrDev:_free_inode(inode)
+	-- Character device inodes are owned by the driver, not the inode table.
+	-- Nothing to free here.
+end
+
+function BaseChrDev:lookup(dir_inode, name)
+	return nil
 end
 
 ---@param inode Inode

@@ -36,4 +36,10 @@ function RamFS:write_file(inode, offset, data)
     return #data
 end
 
+---@param inode Inode
+function RamFS:_free_inode(inode)
+    BaseFS._free_inode(self, inode)
+    self.data[inode.id] = nil
+end
+
 return RamFS

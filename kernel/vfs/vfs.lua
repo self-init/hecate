@@ -1,159 +1,242 @@
+local Mount = require("vfs.mount")
 local Inode = require("vfs.inode")
-local Paths = require("common.paths")
+local InodeModeFlags = require("vfs.inode.modeflags")
+local Error = require("common.error")
 
 ---@class Vfs
----@field mount_table table<string, Driver>
+---@field root_mount Mount
 local Vfs = {}
 
 ---@return Vfs
 function Vfs:new()
     local vfs = {
-        mount_table = {},
+        root_mount = nil,
     }
     setmetatable(vfs, self)
     self.__index = self
-
     return vfs
 end
 
----Gets an Inode from the path.
----@param resolved_path string
----@return Inode
-function Vfs:namei(resolved_path)
-	local driver = Vfs:get_fs_driver(resolved_path)
-	return driver:get_inode(resolved_path)
-end
+-- Walk a path component by component, resolving mounts and permissions.
+-- Returns (mount, inode) for the final path component.
+-- inode is nil when the final component does not exist (mount is the parent's mount).
+-- cred may be nil for kernel context (skips all permission checks).
+-- cwd_mount/cwd_inode supply the starting point for relative paths.
+---@param path      string
+---@param cred      Credentials?
+---@param cwd_mount Mount?
+---@param cwd_inode Inode?
+---@return Mount, Inode?
+function Vfs:namei(path, cred, cwd_mount, cwd_inode)
+    local cur_mount, cur_inode
 
----Get the filesystem/device that a file is from.
----@param resolved_path string
----@return Driver
-function Vfs:get_fs_driver(resolved_path)
-    local matching_mount_path = ""
-    local matching_driver
-
-    for mount_path, driver in pairs(self.mount_table) do
-        if mount_path == resolved_path:sub(1,#mount_path) and #mount_path > #matching_mount_path then
-            matching_mount_path = mount_path
-            matching_driver = driver
-        end
+    if path:sub(1, 1) == "/" then
+        cur_mount = self.root_mount
+        cur_inode = self.root_mount.root_inode
+    else
+        cur_mount = cwd_mount or self.root_mount
+        cur_inode = cwd_inode or self.root_mount.root_inode
     end
 
-    if matching_driver == nil then
-        error("Error: Vfs get_filesystem: no driver associated is associated with the path '" .. resolved_path .. "'.")
-    end
+    for component in path:gmatch("([^/]+)") do
+        if component == "." then
+            -- Stay at current inode.
 
-    return matching_driver
-end
+        elseif component == ".." then
+            -- Are we at the root of the current mount?
+            if cur_inode.id == cur_mount.root_inode.id then
+                if cur_mount.parent then
+                    -- Cross mount boundary upward: land on the mountpoint inode
+                    -- in the parent filesystem, then apply ".." from there.
+                    local mp_inode = cur_mount.mountpoint_inode
+                    cur_mount = cur_mount.parent
+                    if mp_inode.id ~= cur_mount.root_inode.id then
+                        local parent_inode = cur_mount.driver:lookup(mp_inode, "..")
+                        cur_inode = parent_inode or cur_mount.root_inode
+                    else
+                        cur_inode = cur_mount.root_inode
+                    end
+                end
+                -- else: ".." at the true root is a no-op (POSIX behaviour).
+            else
+                local parent_inode = cur_mount.driver:lookup(cur_inode, "..")
+                if parent_inode then cur_inode = parent_inode end
+            end
 
----Mount a device to a path
----@param driver Driver
----@param mount_path string
----@return Inode
-function Vfs:mount(driver, mount_path)
-    self.mount_table[mount_path] = driver
-    return driver:mount(mount_path)
-end
+        else
+            -- Check execute permission on the directory being traversed.
+            if cred then
+                self:check_inode_perm(cred, cur_inode, InodeModeFlags.MASK_EXEC, component)
+            end
 
----Unmount a device
----@param mount_path string
-function Vfs:unmount(mount_path)
-	self.mount_table[mount_path] = nil
-end
+            local next_inode = cur_mount.driver:lookup(cur_inode, component)
+            if next_inode == nil then
+                -- Component not found; return the mount context so callers
+                -- can create files here (e.g. O_CREAT).
+                return cur_mount, nil
+            end
 
--- Checks execute permission on every parent directory of path.
--- Errors with EACCES if traversal is denied on any directory.
--- Root (euid == 0) bypasses all traversal checks.
----@param process Process
----@param path string
-function Vfs:check_path_traversal(process, path)
-    if process.euid == 0 then return end
-    local gids = process:get_gids()
-    for _, dir_path in ipairs(Paths.parent_dirs(path)) do
-        local driver = self:get_fs_driver(dir_path)
-        local dir_inode = driver:get_inode(dir_path)
-        if not Inode.get_perms(dir_inode, Inode.MASK_EXEC, process.euid, gids) then
-            error("EACCES: " .. dir_path)
-        end
-    end
-end
-
--- Checks a permission mask on a single inode for the given process.
--- Errors with EACCES if permission is denied.
--- Root (euid == 0) bypasses all inode permission checks.
----@param process Process
----@param inode Inode
----@param mask integer
----@param path string
-function Vfs:check_inode_perm(process, inode, mask, path)
-    if process.euid == 0 then return end
-    if not Inode.get_perms(inode, mask, process.euid, process:get_gids()) then
-        error("EACCES: " .. path)
-    end
-end
-
----@param process Process
----@param path string
----@param offset integer
----@param length integer
----@return any
-function Vfs:read_file(process, path, offset, length)
-    path = Paths.resolve(path, process.current_directory)
-    self:check_path_traversal(process, path)
-    local driver = self:get_fs_driver(path)
-    local inode = driver:get_inode(path)
-    self:check_inode_perm(process, inode, Inode.MASK_READ, path)
-	return driver:read_file(inode, offset, length)
-end
-
----@param process Process
----@param path string
----@return table<integer, string>
-function Vfs:read_dir(process, path)
-    path = Paths.resolve(path, process.current_directory)
-    self:check_path_traversal(process, path)
-    local driver = self:get_fs_driver(path)
-    local inode = driver:get_inode(path)
-    self:check_inode_perm(process, inode, Inode.MASK_READ, path)
-    local entries = driver:read_dir(inode)
-
-    -- Inject names of direct child mount points not already in entries
-    local entry_set = {}
-    for _, name in ipairs(entries) do entry_set[name] = true end
-
-    local path_prefix = path == "/" and "/" or path .. "/"
-    for mount_path, _ in pairs(self.mount_table) do
-        if mount_path:sub(1, #path_prefix) == path_prefix then
-            local remainder = mount_path:sub(#path_prefix + 1)
-            if #remainder > 0 and not remainder:find("/") and not entry_set[remainder] then
-                table.insert(entries, remainder)
-                entry_set[remainder] = true
+            -- Cross into a child mount if one is attached to this inode.
+            local child_mount = cur_mount.children[next_inode.id]
+            if child_mount then
+                cur_mount = child_mount
+                cur_inode = child_mount.root_inode
+            else
+                cur_inode = next_inode
             end
         end
     end
+
+    return cur_mount, cur_inode
+end
+
+-- Check a permission mask on a single inode. Root (euid == 0) always passes.
+---@param cred  Credentials
+---@param inode Inode
+---@param mask  integer
+---@param path  string   used in the error message
+function Vfs:check_inode_perm(cred, inode, mask, path)
+    if cred.euid == 0 then return end
+    if not Inode.get_perms(inode, mask, cred.euid, cred:get_gids()) then
+        Error.throw(Error.EACCES, path)
+    end
+end
+
+-- Mount a driver at mount_path.
+-- For the root mount ("/") this initialises root_mount.
+-- For all other paths the mountpoint directory must already exist.
+---@param driver     Driver
+---@param mount_path string
+---@return Inode  root inode of the new mount
+function Vfs:mount(driver, mount_path)
+    local root_inode = driver:mount(mount_path)
+
+    if mount_path == "/" then
+        self.root_mount = Mount:new(driver, nil, nil, root_inode)
+    else
+        local parent_mount, mp_inode = self:namei(mount_path, nil, nil, nil)
+        if mp_inode == nil then
+            Error.throw(Error.ENOENT, mount_path)
+        end
+        local new_mount = Mount:new(driver, parent_mount, mp_inode, root_inode)
+        parent_mount.children[mp_inode.id] = new_mount
+    end
+
+    return root_inode
+end
+
+-- Unmount the filesystem at mount_path.
+---@param mount_path string
+function Vfs:unmount(mount_path)
+    if mount_path == "/" then
+        self.root_mount = nil
+        return
+    end
+    local parent_mount, mp_inode = self:namei(mount_path, nil, nil, nil)
+    if mp_inode and parent_mount.children[mp_inode.id] then
+        parent_mount.children[mp_inode.id] = nil
+    end
+end
+
+---@param process Process
+---@param path    string
+---@param offset  integer
+---@param length  integer
+---@return any
+function Vfs:read_file(process, path, offset, length)
+    local mount, inode = self:namei(path, process.cred, process.cwd_mount, process.cwd_inode)
+    if inode == nil then Error.throw(Error.ENOENT, path) end
+    self:check_inode_perm(process.cred, inode, InodeModeFlags.MASK_READ, path)
+    return mount.driver:read_file(inode, offset, length)
+end
+
+---@param process Process
+---@param path    string
+---@return table<integer, string>
+function Vfs:read_dir(process, path)
+    local mount, inode = self:namei(path, process.cred, process.cwd_mount, process.cwd_inode)
+    if inode == nil then Error.throw(Error.ENOENT, path) end
+    self:check_inode_perm(process.cred, inode, InodeModeFlags.MASK_READ, path)
+    local entries = mount.driver:read_dir(inode)
+
+    -- Inject "." and ".." if the driver did not supply them.
+    local entry_set = {}
+    for _, name in ipairs(entries) do entry_set[name] = true end
+    if not entry_set["."]  then table.insert(entries, ".")  end
+    if not entry_set[".."] then table.insert(entries, "..") end
 
     return entries
 end
 
 function Vfs:write_file(process, path, offset, data)
-    path = Paths.resolve(path, process.current_directory)
-    self:check_path_traversal(process, path)
-    local driver = self:get_fs_driver(path)
-    local inode = driver:get_inode(path)
-    self:check_inode_perm(process, inode, Inode.MASK_WRITE, path)
-	return driver:write_file(inode, offset, data)
+    local mount, inode = self:namei(path, process.cred, process.cwd_mount, process.cwd_inode)
+    if inode == nil then Error.throw(Error.ENOENT, path) end
+    self:check_inode_perm(process.cred, inode, InodeModeFlags.MASK_WRITE, path)
+    return mount.driver:write_file(inode, offset, data)
 end
 
 function Vfs:create_file(process, parent_path, name, type)
-    parent_path = Paths.resolve(parent_path, process.current_directory)
-    self:check_path_traversal(process, parent_path)
-    local driver = self:get_fs_driver(parent_path)
-    local parent_inode = driver:get_inode(parent_path)
-    if Inode.get_file_type(parent_inode, Inode.TYPE_DIR) then
-        error("ENOTDIR: " .. parent_path)
+    local mount, parent_inode = self:namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode)
+    if parent_inode == nil then Error.throw(Error.ENOENT, parent_path) end
+    if not Inode.get_file_type(parent_inode, InodeModeFlags.TYPE_DIR) then
+        Error.throw(Error.ENOTDIR, parent_path)
     end
-    self:check_inode_perm(process, parent_inode, Inode.MASK_WRITE, parent_path)
-    self:check_inode_perm(process, parent_inode, Inode.MASK_EXEC, parent_path)
-	return driver:create_file(parent_inode, name, type)
+    self:check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_WRITE, parent_path)
+    self:check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_EXEC, parent_path)
+    return mount.driver:create_file(parent_inode, name, type)
+end
+
+-- Remove a file. Errors if path is a directory (use rmdir instead).
+function Vfs:unlink(process, path)
+    local mount, inode = self:namei(path, process.cred, process.cwd_mount, process.cwd_inode)
+    if inode == nil then Error.throw(Error.ENOENT, path) end
+    if Inode.get_file_type(inode, InodeModeFlags.TYPE_DIR) then
+        Error.throw(Error.EISDIR, path)
+    end
+    local parent_path = path:match("^(.+)/[^/]+$") or (path:sub(1,1) == "/" and "/" or ".")
+    local _, parent_inode = self:namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode)
+    if parent_inode then
+        self:check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_WRITE, parent_path)
+        self:check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_EXEC, parent_path)
+    end
+    mount.driver:destroy_file(inode)
+end
+
+-- Create a directory.
+function Vfs:mkdir(process, path)
+    local name = path:match("[^/]+$") or path
+    local parent_path = path:match("^(.+)/[^/]+$") or (path:sub(1,1) == "/" and "/" or ".")
+    local mount, parent_inode = self:namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode)
+    if parent_inode == nil then Error.throw(Error.ENOENT, parent_path) end
+    if not Inode.get_file_type(parent_inode, InodeModeFlags.TYPE_DIR) then
+        Error.throw(Error.ENOTDIR, parent_path)
+    end
+    self:check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_WRITE, parent_path)
+    self:check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_EXEC, parent_path)
+    -- Confirm target does not already exist.
+    local _, existing = self:namei(path, process.cred, process.cwd_mount, process.cwd_inode)
+    if existing ~= nil then Error.throw(Error.EEXIST, path) end
+    return mount.driver:create_file(parent_inode, name, InodeModeFlags.TYPE_DIR)
+end
+
+-- Remove an empty directory.
+function Vfs:rmdir(process, path)
+    local mount, inode = self:namei(path, process.cred, process.cwd_mount, process.cwd_inode)
+    if inode == nil then Error.throw(Error.ENOENT, path) end
+    if not Inode.get_file_type(inode, InodeModeFlags.TYPE_DIR) then
+        Error.throw(Error.ENOTDIR, path)
+    end
+    local entries = mount.driver:read_dir(inode)
+    if entries and #entries > 0 then Error.throw(Error.ENOTEMPTY, path) end
+    local parent_path = path:match("^(.+)/[^/]+$") or (path:sub(1,1) == "/" and "/" or ".")
+    local _, parent_inode = self:namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode)
+    if parent_inode then
+        self:check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_WRITE, parent_path)
+        self:check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_EXEC, parent_path)
+        -- Removing a directory also removes its .. back-reference.
+        parent_inode.links = parent_inode.links - 1
+    end
+    mount.driver:destroy_file(inode)
 end
 
 return Vfs

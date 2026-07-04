@@ -23,6 +23,13 @@ function Driver:unmount(path) end
 ---@return Inode Inode at the path.
 function Driver:get_inode(path) end
 
+---Looks up a single name inside a directory inode.
+---Handles ".." by returning the parent inode. Returns nil if the name does not exist.
+---@param dir_inode Inode  The directory to search in.
+---@param name string      The entry name to look up (never "." — callers skip that).
+---@return Inode?
+function Driver:lookup(dir_inode, name) end
+
 ---Gets the files in a directory.
 ---@param inode Inode Directory to read from.
 ---@return table<integer, string> Output table of files.

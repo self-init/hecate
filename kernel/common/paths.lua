@@ -1,9 +1,15 @@
 local Paths = {}
 
+---Returns an iterator that steps through the individual components of a string
+---@param path_string string
+---@return unknown
 function Paths.iterator(path_string)
     return path_string:gmatch("([^/]+)")
 end
 
+---Splits a path by it's individial components
+---@param path_string string
+---@return table<string>
 function Paths.split(path_string)
     local parts = {}
     for part in Paths.iterator(path_string) do
@@ -16,7 +22,11 @@ end
 --     return #paths.split(pathString)
 -- end
 --
+
+---Joins two or more paths together into a single path.
 ---@param path1 string
+---@param ... string
+---@return string
 function Paths.join(path1, ...)
     local joined_path = path1
     for _, path in ipairs({...}) do
@@ -33,21 +43,11 @@ function Paths.join(path1, ...)
     return joined_path
 end
 
--- Returns all parent directories for a path in order from root.
--- Used for checking execute permission during path traversal.
--- e.g., "/a/b/c" -> {"/", "/a", "/a/b"}
--- e.g., "/a"     -> {"/"}
--- e.g., "/"      -> {}
-function Paths.parent_dirs(path_string)
-    local parts = Paths.split(path_string)
-    if #parts == 0 then return {} end
-    local dirs = {"/"}
-    for i = 1, #parts - 1 do
-        table.insert(dirs, "/" .. table.concat(parts, "/", 1, i))
-    end
-    return dirs
-end
-
+---Resolves the full path of a string from a relative path and the current
+---working directory.
+---@param path_string any
+---@param working_directory_string any
+---@return string
 function Paths.resolve(path_string, working_directory_string)
     --local pathParts = {}
 
