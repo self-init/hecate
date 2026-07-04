@@ -26,7 +26,7 @@ end
 
 function ProcessManager:new(arch)
     local procman = {
-        process_id     = 0,
+        process_id     = 1,
         processes      = {},
         active_process = nil,
         -- queues[1] = highest priority, queues[NUM_QUEUES] = lowest
@@ -118,7 +118,7 @@ function ProcessManager:step()
     self.active_process = nil
 
     if not ok then
-        local stderr = proc.file_descriptors[2]
+        local stderr = proc.fds:get(2)
         if stderr then
             stderr:write(tostring(err) .. "\n")
         end
