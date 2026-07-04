@@ -1,4 +1,4 @@
-local BaseChrDev = require("drivers.basechrdev")
+local BaseChrDev = require("drivers.common.basechrdev")
 
 ---@class Kbd: BaseChrDev
 local Kbd = BaseChrDev:new()

@@ -1,5 +1,7 @@
 local Kbd = require("drivers.cc.kbd")
 local CCTty = require("drivers.cc.tty")
+local Null = require("drivers.agnostic.null")
+local InodeModeFlags = require("vfs.inode.modeflags")
 
 -- Map CC key scan codes to the control characters the TTY line discipline expects.
 -- "char" events never fire for these keys, so they must be injected via "key".
@@ -29,9 +31,17 @@ function CCArch:init(kernel)
 	self._timer_id = os.startTimer(0.05)
 	self._kernel = kernel
 
+	-- Create mountpoint files in devfs before mounting char drivers.
+	-- Level 3 VFS requires a real inode to exist at each mountpoint path.
+	local devfs_mount, devfs_root = kernel.vfs:namei("/dev", nil, nil, nil)
+	devfs_mount.driver:create_file(devfs_root, "tty",  InodeModeFlags.TYPE_CHR)
+	devfs_mount.driver:create_file(devfs_root, "kbd",  InodeModeFlags.TYPE_CHR)
+	devfs_mount.driver:create_file(devfs_root, "null", InodeModeFlags.TYPE_CHR)
+
 	self.tty = CCTty:new(self)
-	kernel.vfs:mount(self.tty, "/dev/tty")
-	kernel.vfs:mount(Kbd:new(self), "/dev/kbd")
+	kernel.vfs:mount(self.tty,       "/dev/tty")
+	kernel.vfs:mount(Kbd:new(self),  "/dev/kbd")
+	kernel.vfs:mount(Null:new(self), "/dev/null")
 end
 
 function CCArch:step()
