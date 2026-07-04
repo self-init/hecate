@@ -3,8 +3,9 @@ local CCTty = require("drivers.cc.tty")
 local Null = require("drivers.agnostic.null")
 local InodeModeFlags = require("vfs.inode.modeflags")
 
--- Map CC key scan codes to the control characters the TTY line discipline expects.
--- "char" events never fire for these keys, so they must be injected via "key".
+---Map CC key scan codes to the control characters the TTY line discipline expects.
+---"char" events never fire for these keys, so they must be injected via "key".
+---@type table<unknown, string>
 local KEY_TO_CHAR = {
 	[keys.enter]       = "\n",
 	[keys.numPadEnter] = "\n",
@@ -16,6 +17,8 @@ local KEY_TO_CHAR = {
 ---@field event_refcount table<string, integer> {event = ref_count}}
 local CCArch = {}
 
+---Creates a new arch instance for ComputerCraft
+---@return CCArch
 function CCArch:new()
 	local ccarch = {
 		kbd_queue = {},
@@ -27,6 +30,9 @@ function CCArch:new()
 	return ccarch
 end
 
+---Creates the ComputerCraft architecture and initial devices.
+---Also creates a timer for CC specific functionality.
+---@param kernel Kernel
 function CCArch:init(kernel)
 	self._timer_id = os.startTimer(0.05)
 	self._kernel = kernel
@@ -44,6 +50,9 @@ function CCArch:init(kernel)
 	kernel.vfs:mount(Null:new(self), "/dev/null")
 end
 
+---Performs some step and upkeep work for the kernel, called every scheduler step.
+---Also handles sig_kill temporarily
+---@return nil
 function CCArch:step()
 	local event, p1, p2 = os.pullEventRaw()
 	if event == "timer" and p1 == self._timer_id then
