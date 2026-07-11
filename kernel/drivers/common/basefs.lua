@@ -83,7 +83,8 @@ function BaseFS:lookup(dir_inode, name)
     local dir_path = self.inode_path_map:get(dir_inode.id)
     if dir_path == nil then return nil end
     if name == ".." then
-        local parent_path = dir_path:match("^(.*)/[^/]+$") or "/"
+        local parent_path = dir_path:match("^(.*)/[^/]+$")
+        if parent_path == nil or parent_path == "" then parent_path = "/" end
         return self:get_inode(parent_path)
     end
     return self:get_inode(Paths.join(dir_path, name))

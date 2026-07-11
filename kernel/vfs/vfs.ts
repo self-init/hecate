@@ -1,9 +1,9 @@
-import Error from "common.error";
-import Inode from "vfs.inode";
-import Mount from "vfs.mount";
-import Process from "processes.process";
-import Credentials from "processes.credentials";
-import Driver from "drivers.driver";
+import * as Error from "common.error";
+import * as Inode from "vfs.inode";
+import * as Mount from "vfs.mount";
+import * as Process from "processes.process";
+import * as Credentials from "processes.credentials";
+import * as Driver from "drivers.driver";
 
 export class Vfs {
 	root_mount: Mount | null;
@@ -68,66 +68,6 @@ export class Vfs {
 
 		return $multi(mount, inode);
 	}
-
-
-
-	// Add credentials type here
-	// namei(path: string, cred: unknown, cwd_mount?: Mount, cwd_inode?: Inode): LuaMultiReturn<[Mount, Inode | null]> {
-	// 	let cur_mount: Mount, cur_inode: Inode;
-
-	// 	if (string.sub(path, 1, 1) === "/") {
-	// 		cur_mount = this.root_mount
-	// 		cur_inode = this.root_mount?.root_inode
-	// 	} else {
-	// 		cur_mount = cwd_mount || this.root_mount
-	// 		cur_inode = cwd_inode || this.root_mount?.root_inode
-	// 	}
-
-	// 	for (const [component] of string.gmatch(path, "([^/]+)")) {
-	// 		if (component === ".") {
-
-	// 		} else if (component === "..") {
-	// 			// Are we at the root of the current mount
-	// 			if (cur_inode.id === cur_mount.root_inode.id) {
-	// 				if (cur_mount.parent) {
-	// 					// Cross mount boundary upward
-	// 					let mp_inode: Inode = cur_mount.mountpoint_inode;
-	// 					cur_mount = cur_mount.parent;
-	// 					if (mp_inode.id !== cur_mount.root_inode.id) {
-	// 						let parent_inode: Inode = cur_mount.driver.lookup(mp_inode, "..");
-	// 						cur_inode = parent_inode || cur_mount.root_inode;
-	// 					} else {
-	// 						cur_inode = cur_mount.root_inode;
-	// 					}
-	// 				}
-	// 			} else {
-	// 				let parent_inode: Inode = cur_mount.driver.lookup(cur_inode, "..");
-	// 				if (parent_inode) { cur_inode = parent_inode; }
-	// 			}
-	// 		} else {
-	// 			// check execute/traversal permission on the directory
-	// 			if (cred !== null) {
-	// 				this.check_inode_perm(cred, cur_inode, InodeModeFlags.MASK_EXEC, component);
-	// 			}
-
-	// 			let next_inode: Inode = cur_mount.driver.lookup(cur_inode, component);
-	// 			if (next_inode === null) {
-	// 				// component not found, return the mount ctx soo callers can create files
-	// 				return $multi(cur_mount, null);
-	// 			}
-
-	// 			// cross into a child mount if one is attached to this inode
-	// 			let child_mount: Mount = cur_mount.children.get(next_inode.id);
-	// 			if (child_mount) {
-	// 				cur_mount = child_mount;
-	// 				cur_inode = child_mount.root_inode;
-	// 			} else {
-	// 				cur_inode = next_inode;
-	// 			}
-	// 		}
-	// 	}
-	// 	return $multi(cur_mount, cur_inode);
-	// }
 
 	// Check permissions on an inode.
 	// euid === 0 always passes
@@ -261,4 +201,8 @@ export class Vfs {
 		}
 		mount.driver.destroy_file(inode);
 	}
+}
+
+export function create(): Vfs {
+	return new Vfs();
 }

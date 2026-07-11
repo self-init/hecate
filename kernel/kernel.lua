@@ -14,7 +14,7 @@ local Kernel = {}
 function Kernel:new(arch)
 	local kernel = {
 		arch = arch,
-		vfs = Vfs:new(),
+		vfs = Vfs:create(),
 		procman = ProcessManager:new(),
 	}
 

@@ -1,7 +1,9 @@
 /// <reference path="../node_modules/lua-types/5.2.d.ts" />
 /// <reference path="../node_modules/@typescript-to-lua/language-extensions/index.d.ts" />
+
 type integer = number;
 
+/** @noResolution */
 declare module "common.error" {
 	interface ErrorObject {
 		code: string;
@@ -35,6 +37,7 @@ declare module "common.error" {
 	export = Error;
 }
 
+/** @noResolution */
 declare module "vfs.inode" {
 	interface Inode {
 		id: integer;
@@ -102,12 +105,13 @@ declare const enum InodeModeFlags {
 	MASK_TYPE = 0xf000, // File type
 }
 
+/** @noResolution */
 declare module "vfs.mount" {
 	import type Inode from "vfs.inode";
 	import type Driver from "drivers.driver";
 
 	interface Mount {
-		"new"(this: void, driver: unknown, parent: Mount | null, mountpoint_inode: Inode | null, root_inode: Inode): Mount;
+		"new"(driver: unknown, parent: Mount | null, mountpoint_inode: Inode | null, root_inode: Inode): Mount;
 		driver: Driver;
 		parent: Mount | null;
 		mountpoint_inode: Inode;
@@ -125,7 +129,7 @@ declare module "drivers.driver" {
 
 	interface Driver {
 		arch: unknown;
-		"new"(this: void, arch: unknown): Driver;
+		"new"(arch: unknown): Driver;
 		mount(path: string): Inode;
 		unmount(path: string): void;
 		get_inode(path: string): Inode;
@@ -143,6 +147,7 @@ declare module "drivers.driver" {
 	export = Driver;
 }
 
+/** @noResolution */
 declare module "processes.process" {
 	import type Inode from "vfs.inode";
 	import type Mount from "vfs.mount";
@@ -166,9 +171,12 @@ declare module "processes.process" {
 		env: LuaTable;
 	}
 
+	const Process: Process;
+
 	export = Process;
 }
 
+/** @noResolution */
 declare module "processes.credentials" {
 	interface Credentials {
 		ruid: integer;
@@ -180,6 +188,8 @@ declare module "processes.credentials" {
 		supplementary_groups: LuaTable<integer>;
 		get_gids(): integer[];
 	}
+
+	const Credentials: Credentials;
 
 	export = Credentials;
 }
