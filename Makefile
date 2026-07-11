@@ -43,30 +43,34 @@ $(rootfs): $(root_files)
 $(native_kernel_mini): $(native_kernel)
 	luamin -f $(native_kernel) > $(native_kernel_mini)
 
-$(native_kernel): $(all_sources) $(out)
+$(native_kernel): $(all_sources) $(out) typescript
 	lua build/bundle.lua kernel/arch/native/startup.lua kernel > $(native_kernel)
 
-$(cc_installer): $(cc_kernel_mini) $(rootfs)
+$(cc_installer): $(cc_kernel_mini) $(rootfs) typescript
 	lua build/mkinstaller.lua $(cc_kernel_mini) $(rootfs) > $(cc_installer)
 
 $(cc_kernel_mini): $(cc_kernel)
 	luamin -f $(cc_kernel) > $(cc_kernel_mini)
 
-$(cc_kernel): $(all_sources) $(out)
+$(cc_kernel): $(all_sources) $(out) typescript
 	lua build/bundle.lua kernel/arch/cc/startup.lua kernel > $(cc_kernel)
 
-$(kernel_file): $(all_sources) $(out)
+$(kernel_file): $(all_sources) $(out) typescript
 	lua build/bundle.lua kernel/kernel.lua kernel > $(kernel_file)
 
 $(out):
 	mkdir $(out)
 
-$(docsdir)/doc.md $(docsdir)/doc.json &: $(all_sources) $(docsdir)
+$(docsdir)/doc.md $(docsdir)/doc.json &: $(all_sources) $(docsdir) typescript
 	lua-language-server --doc=. --doc_out_path=./$(docsdir)
 
 $(docsdir):
 	mkdir $(docsdir)
 
+typescript:
+	npx tstl --noEmitOnError
+
 clean:
 	rm -rf $(out)
 	rm -rf $(docsdir)
+	rm -f kernel/**/*.lua.map

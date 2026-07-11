@@ -1,0 +1,17 @@
+{
+	"compilerOptions": {
+		"strict": true,
+//		"module": "CommonJS",
+		"rootDir": "kernel",
+		"outDir": "kernel",
+		"types": [],
+	},
+	"tstl": {
+		"luaTarget": "5.2",
+		"noImplicitSelf": false,
+		"noHeader": true,
+		"sourceMapTraceback": false,
+	},
+	"include": ["kernel/**/*.ts"],
+	"exclude": [],
+}

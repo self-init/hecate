@@ -1,2 +1,5 @@
 output
 docs
+
+node_modules/
+*.lua.map

@@ -1,0 +1,30 @@
+{
+  "name": "hecate",
+  "version": "1.0.0",
+  "description": "Hecate is a kernel-like program written in Lua, intended to be used with computercraft.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/self-init/hecate.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/self-init/hecate/issues"
+  },
+  "homepage": "https://github.com/self-init/hecate#readme",
+  "devDependencies": {
+    "@typescript-to-lua/language-extensions": "^1.19.0",
+    "lua-types": "^2.14.1",
+    "typescript": "^6.0.2",
+    "typescript-to-lua": "^1.37.0"
+  }
+}

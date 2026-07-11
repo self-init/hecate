@@ -9,6 +9,7 @@ local Bitwise = require("common.bitwise")
 -- and who has read/write/execute permissions for the file
 ---@class Inode
 ---@field id integer
+---@field links integer
 ---@field owner integer
 ---@field group integer
 ---@field mode integer
