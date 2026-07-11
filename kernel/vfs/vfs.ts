@@ -1,6 +1,6 @@
 import * as Error from "common.error";
 import * as Inode from "vfs.inode";
-import * as Mount from "vfs.mount";
+import {Mount, MountParentInfo} from "./mount"
 import * as Process from "processes.process";
 import * as Credentials from "processes.credentials";
 import * as Driver from "drivers.driver";
@@ -27,8 +27,8 @@ export class Vfs {
 		}
 
 		// Cross upward to parent mount
-		const mountpoint_inode: Inode = mount.mountpoint_inode;
-		const parent_mount: Mount = mount.parent;
+		const mountpoint_inode: Inode = mount.parent.mountpoint;
+		const parent_mount: Mount = mount.parent.mount;
 
 		if (mountpoint_inode.id === parent_mount.root_inode.id) {
 			return $multi(parent_mount, parent_mount.root_inode);
@@ -61,7 +61,7 @@ export class Vfs {
 				return $multi(mount, null); // not found; return mount ctx so callers can create files
 			}
 
-			const child_mount: Mount = mount.children.get(next_inode.id);
+			const child_mount: Mount = mount.children[next_inode.id];
 			mount = child_mount || mount;
 			inode = child_mount !== null ? child_mount.root_inode : next_inode;
 		}
@@ -83,16 +83,16 @@ export class Vfs {
 		let root_inode: Inode = driver.mount(mount_path)
 
 		if (mount_path === "/") {
-			this.root_mount = Mount.new(driver, null, null, root_inode);
+			this.root_mount = new Mount(driver, root_inode);
 		} else {
 			let [parent_mount, mp_inode] = this.namei(mount_path);
 
 			if (mp_inode === null) {
 				Error.throw(Error.ENOENT, mount_path);
 			}
-
-			let new_mount = Mount.new(driver, parent_mount, mp_inode, root_inode);
-			parent_mount.children.set(mp_inode.id, new_mount);
+			let mp_info: MountParentInfo = { mount: parent_mount, mountpoint: mp_inode }
+			let new_mount = new Mount(driver, root_inode, mp_info);
+			parent_mount.children[mp_inode.id] = new_mount;
 		}
 
 		return root_inode;
@@ -103,8 +103,8 @@ export class Vfs {
 			this.root_mount == null
 		} else {
 			let [parent_mount, mp_inode] = this.namei(mount_path);
-			if (mp_inode && parent_mount.children.get(mp_inode.id)) {
-				parent_mount.children.delete(mp_inode.id);
+			if (mp_inode && parent_mount.children[mp_inode.id]) {
+				delete parent_mount.children[mp_inode.id];
 			}
 		}
 	}

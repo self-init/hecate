@@ -105,25 +105,6 @@ declare const enum InodeModeFlags {
 	MASK_TYPE = 0xf000, // File type
 }
 
-/** @noResolution */
-declare module "vfs.mount" {
-	import type Inode from "vfs.inode";
-	import type Driver from "drivers.driver";
-
-	interface Mount {
-		"new"(driver: unknown, parent: Mount | null, mountpoint_inode: Inode | null, root_inode: Inode): Mount;
-		driver: Driver;
-		parent: Mount | null;
-		mountpoint_inode: Inode;
-		root_inode: Inode;
-		children: LuaTable<integer, Mount>;
-	}
-
-	const Mount: Mount;
-
-	export = Mount;
-}
-
 declare module "drivers.driver" {
 	import type Inode from "vfs.inode";
 
@@ -150,7 +131,6 @@ declare module "drivers.driver" {
 /** @noResolution */
 declare module "processes.process" {
 	import type Inode from "vfs.inode";
-	import type Mount from "vfs.mount";
 	import type Credentials from "processes.credentials";
 
 	interface Process {
@@ -160,7 +140,7 @@ declare module "processes.process" {
 		capabilities: integer;
 		fds: unknown;
 		current_directory: string;
-		cwd_mount: Mount;
+		cwd_mount: import("./vfs/mount").Mount;
 		cwd_inode: Inode;
 		argv: LuaTable<string>;
 		envp: LuaTable<string>;
