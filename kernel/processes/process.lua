@@ -45,7 +45,7 @@ function Process:new(kernel, path, argv)
 	local proc = {
 		pid               = 0,
 		ppid              = 0,
-		cred              = Credentials:new(),
+		cred              = Credentials.create(),
 		fds               = FDTable:new(),
 		current_directory = "/",
 		cwd_mount         = kernel.vfs.root_mount,
