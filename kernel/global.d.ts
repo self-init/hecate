@@ -5,6 +5,16 @@ type integer = number;
 type UID = integer;
 type Path = string;
 
+type ErrorCode =
+		| "ENOENT"
+		| "EACCES"
+		| "EBADF"
+		| "EEXIST"
+		| "EISDIR"
+		| "ENOEXEC"
+		| "ENOTEMPTY"
+		| "ENOTDIR";
+
 /** @noResolution */
 declare module "common.error" {
 	interface ErrorObject {

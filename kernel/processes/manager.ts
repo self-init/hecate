@@ -117,6 +117,10 @@ export class ProcessManager {
 			if (stderr !== null) {
 				stderr.write(tostring(err) + "\n");
 			}
+			// Kernel-level fallback: process fds may not be wired up (early boot,
+			// or the process died before opening one), which would otherwise
+			// silently drop the only record of why it died.
+			print("[pid " + tostring(process.pid) + "] died: " + tostring(err));
 			process.dead = true;
 			process.exit_code = -1;
 			delete this.meta[process.pid];
