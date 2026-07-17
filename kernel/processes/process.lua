@@ -69,7 +69,7 @@ end
 function Process:_open_tty_fds()
 	local mount, inode = self.kernel.vfs:namei("/dev/tty", nil, nil, nil)
 	for n = 0, 2 do
-		self.fds:set(n, FileDescriptor:new(mount, inode, "/dev/tty", FileDescriptorOpenFlags.O_RDWR))
+		self.fds:set(n, FileDescriptor.create(mount, inode, "/dev/tty", FileDescriptorOpenFlags.O_RDWR))
 	end
 end
 
@@ -125,7 +125,7 @@ function Process:open_fd(path, flags, base_mount, base_inode)
 		inode.size = 0
 	end
 
-	return self.fds:insert(FileDescriptor:new(mount, inode, path, flags))
+	return self.fds:insert(FileDescriptor.create(mount, inode, path, flags))
 end
 
 -- Close an open file descriptor.
