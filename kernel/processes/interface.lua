@@ -179,10 +179,10 @@ function ProcessInterface.new(process)
 
 	---@param pid integer
 	function process_interface.wait(pid)
-		local proc = procman.processes[pid]
+		local proc = procman:get_process(pid)
 		while proc and not proc.dead do
 			coroutine.yield()
-			proc = procman.processes[pid]
+			proc = procman:get_process(pid)
 		end
 		return proc and proc.exit_code
 	end

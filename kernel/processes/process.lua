@@ -159,7 +159,7 @@ function Process:make_env()
 		rawset       = rawset,
 		rawequal     = rawequal,
 		rawlen       = rawlen,
-		bitwise      = Bitwise,
+		bitwise      = Bitwise.freeze(Bitwise),
 	}
 
 	-- File descriptor open flags and seek constants

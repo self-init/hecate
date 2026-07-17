@@ -49,7 +49,7 @@ export function resolve(rel_path: Path, wd_path: Path): Path {
 
 	let path_parts: string[] = [];
 
-	for (const part in iterator(rel_path)) {
+	for (const [part] of iterator(rel_path)) {
 		if (part === ".") {
 			continue;
 		} else if (part === "..") {

@@ -15,7 +15,7 @@ function Kernel:new(arch)
 	local kernel = {
 		arch = arch,
 		vfs = Vfs:create(),
-		procman = ProcessManager:new(),
+		procman = ProcessManager.create(),
 	}
 
 	setmetatable(kernel, self)
@@ -45,7 +45,7 @@ function Kernel:start()
 	while true do
 		self.arch:step()
 		self.procman:step()
-		local init = self.procman.processes[1]
+		local init = self.procman:get_process(1)
 		if not init or init.dead then
 			error("kernel panic: init (PID 1) died with exit code " .. tostring(init and init.exit_code))
 		end
