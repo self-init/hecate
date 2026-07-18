@@ -27,7 +27,7 @@ end
 
 function BaseChrDev:mount(resolved_path)
 	self.path = resolved_path
-	self.inode = Inode.create(
+	self.inode = Inode.create_inode(
         0,
         InodeModeFlags.TYPE_CHR,
         0,

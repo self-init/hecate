@@ -1,5 +1,5 @@
 import Driver from "drivers.driver";
-import Inode from "vfs.inode";
+import type { Inode } from "./inode/init";
 
 export type MountParentInfo = { mount: Mount, mountpoint: Inode }
 

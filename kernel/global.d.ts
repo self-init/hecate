@@ -1,90 +1,6 @@
 /// <reference path="../node_modules/lua-types/5.2.d.ts" />
 /// <reference path="../node_modules/@typescript-to-lua/language-extensions/index.d.ts" />
 
-type integer = number;
-type UID = integer;
-type Path = string;
-
-type ErrorCode =
-		| "ENOENT"
-		| "EACCES"
-		| "EBADF"
-		| "EEXIST"
-		| "EISDIR"
-		| "ENOEXEC"
-		| "ENOTEMPTY"
-		| "ENOTDIR";
-
-/** @noResolution */
-declare module "common.error" {
-	interface ErrorObject {
-		code: string;
-		message: string;
-	}
-
-	type ErrorCode =
-		| "ENOENT"
-		| "EACCES"
-		| "EBADF"
-		| "EEXIST"
-		| "EISDIR"
-		| "ENOEXEC"
-		| "ENOTEMPTY"
-		| "ENOTDIR";
-
-	/** @noSelf */
-	interface ErrorModule {
-		readonly ENOENT: "ENOENT";
-		readonly EACCES: "EACCES";
-		readonly EBADF: "EBADF";
-		readonly EEXIST: "EEXIST";
-		readonly EISDIR: "EISDIR";
-		readonly ENOEXEC: "ENOEXEC";
-		readonly ENOTEMPTY: "ENOTEMPTY";
-		readonly ENOTDIR: "ENOTDIR";
-
-		err(code: ErrorCode, message: string): ErrorObject;
-		throw(code: ErrorCode, message: string): never;
-	}
-
-	const Error: ErrorModule;
-
-	export = Error;
-}
-
-/** @noResolution */
-declare module "vfs.inode" {
-	interface Inode {
-		id: integer;
-		links: integer;
-		size: integer;
-		refs: integer;
-		unlinked: boolean;
-		owner: integer;
-		group: integer;
-		mode: integer;
-	}
-
-	namespace Inode {
-		// update file_type with inodemodeflags type
-		function create(
-			id: integer,
-			file_type: InodeModeFlags,
-			owner: integer,
-			group: integer,
-		): Inode;
-		function get_perms(
-			ind: Inode,
-			rwe_mask: integer,
-			uid: integer,
-			gids: Array<integer>,
-		): boolean;
-		function get_file_type(ind: Inode, flag: integer): boolean;
-	}
-
-	export = Inode;
-}
-
 declare const enum FileDescriptorOpenFlags {
 	// Open flags
 	O_RDONLY    = 0x0000,
@@ -103,7 +19,6 @@ declare const enum FileDescriptorOpenFlags {
 	SEEK_CUR = 1,
 	SEEK_END = 2
 }
-
 declare const enum Termios {
 	// lflag bits
 	ISIG   = 0x0001, // signal generation (^C, ^Z)
@@ -121,7 +36,6 @@ declare const enum Termios {
 	VKILL  = 3, // kill line      (^U, byte 21)
 	VEOF   = 4, // end-of-file    (^D, byte 4)
 }
-
 declare const enum InodeModeFlags {
 	TYPE_SCK = 0xc000, // Socket
 	TYPE_SYM = 0xa000, // Symlink
@@ -157,9 +71,20 @@ declare const enum InodeModeFlags {
 	MASK_TYPE = 0xf000, // File type
 }
 
-declare module "drivers.driver" {
-	import type Inode from "vfs.inode";
+declare type integer = number;
+declare type UID = integer;
+declare type Path = string;
+declare type ErrorCode =
+	| "ENOENT"
+	| "EACCES"
+	| "EBADF"
+	| "EEXIST"
+	| "EISDIR"
+	| "ENOEXEC"
+	| "ENOTEMPTY"
+	| "ENOTDIR";
 
+declare module "drivers.driver" {
 	interface Driver {
 		arch: unknown;
 		"new"(arch: unknown): Driver;
@@ -182,8 +107,6 @@ declare module "drivers.driver" {
 
 /** @noResolution */
 declare module "processes.process" {
-	import type Inode from "vfs.inode";
-	import type Credentials from "processes.credentials";
 
 	interface Process {
 		pid: integer;
@@ -206,22 +129,4 @@ declare module "processes.process" {
 	const Process: Process;
 
 	export = Process;
-}
-
-/** @noResolution */
-declare module "processes.credentials" {
-	interface Credentials {
-		ruid: integer;
-		euid: integer;
-		suid: number;
-		rgid: number;
-		egid: number;
-		sgid: number;
-		supplementary_groups: LuaTable<integer>;
-		get_gids(): integer[];
-	}
-
-	const Credentials: Credentials;
-
-	export = Credentials;
 }

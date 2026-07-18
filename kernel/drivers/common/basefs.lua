@@ -28,7 +28,7 @@ end
 ---@param resolved_path string
 ---@return Inode
 function BaseFS:mount(resolved_path)
-    local inode = Inode.create(self.inode_id, InodeModeFlags.TYPE_DIR, 0, 0)
+    local inode = Inode.create_inode(self.inode_id, InodeModeFlags.TYPE_DIR, 0, 0)
     self.inode_id = self.inode_id + 1
     self.inodes[inode.id] = inode
     self.inode_path_map:set(resolved_path, inode.id)
@@ -47,7 +47,7 @@ end
 ---@param inode Inode
 ---@return table<integer, string>?
 function BaseFS:read_dir(inode)
-    if not inode or not Inode.get_file_type(inode, InodeModeFlags.TYPE_DIR) then
+    if not inode or not Inode.get_inode_file_type(inode, InodeModeFlags.TYPE_DIR) then
         return nil
     end
 	local inode_path = self.inode_path_map:get(inode.id)
@@ -95,7 +95,7 @@ end
 ---@param type integer
 ---@return Inode
 function BaseFS:create_file(parent_inode, name, type)
-    local inode = Inode.create(self.inode_id, type, 0, 0)
+    local inode = Inode.create_inode(self.inode_id, type, 0, 0)
     self.inode_id = self.inode_id + 1
     self.inodes[inode.id] = inode
 

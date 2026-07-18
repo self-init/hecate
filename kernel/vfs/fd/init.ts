@@ -2,7 +2,7 @@
 
 import { Mount } from "../mount";
 import { band, btest } from "../../common/bitwise";
-import * as Inode from "vfs.inode";
+import type { Inode } from "../inode/init";
 import { Error } from "../../common/error"
 
 export class FileDescriptor {

@@ -1,7 +1,7 @@
 /** @noSelfInFile */
 import { band, bnot, bor, btest } from "../../common/bitwise";
 
-type Inode = {
+export type Inode = {
 	id: integer;
 	links: integer;
 	size: integer;
@@ -12,7 +12,7 @@ type Inode = {
 	mode: integer;
 }
 
-export function create(id: integer, file_type: InodeModeFlags, owner: integer, group: integer): Inode {
+export function create_inode(id: integer, file_type: InodeModeFlags, owner: integer, group: integer): Inode {
 	let default_mode: integer = bor(
 		InodeModeFlags.MASK_READ, InodeModeFlags.MASK_WRITE
 	);
@@ -33,7 +33,7 @@ export function create(id: integer, file_type: InodeModeFlags, owner: integer, g
 	}
 }
 
-export function get_perms(inode: Inode, rew_mask: integer, uid: integer, gids: integer[]): boolean {
+export function get_inode_perms(inode: Inode, rew_mask: integer, uid: integer, gids: integer[]): boolean {
 	let perms: integer = inode.mode;
 	if (uid !== inode.owner) {
 		perms = band(perms, bnot(InodeModeFlags.MASK_OWNER))
@@ -54,6 +54,6 @@ export function get_perms(inode: Inode, rew_mask: integer, uid: integer, gids: i
 	return btest(perms, rew_mask);
 }
 
-export function get_file_type(inode: Inode, flag: integer) {
+export function get_inode_file_type(inode: Inode, flag: integer) {
 	return btest(inode.mode, flag);
 }

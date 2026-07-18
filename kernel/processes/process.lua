@@ -103,7 +103,7 @@ function Process:open_fd(path, flags, base_mount, base_inode)
 		end
 	end
 
-	local is_dir = Inode.get_file_type(inode, InodeModeFlags.TYPE_DIR)
+	local is_dir = Inode.get_inode_file_type(inode, InodeModeFlags.TYPE_DIR)
 	if is_dir and band(flags, FileDescriptorOpenFlags.O_DIRECTORY) == 0 then
 		Error.throw(Error.EISDIR, path)
 	end
@@ -186,7 +186,7 @@ function Process:exec(path)
 		Error.throw(Error.ENOENT, path)
 	end
 
-	if not Inode.get_file_type(inode, InodeModeFlags.TYPE_REG) then
+	if not Inode.get_inode_file_type(inode, InodeModeFlags.TYPE_REG) then
 		Error.throw(Error.ENOEXEC, path)
 	end
 
@@ -216,7 +216,7 @@ function Process:chdir(path)
 		Error.throw(Error.ENOENT, path)
 	end
 
-	if not Inode.get_file_type(inode, InodeModeFlags.TYPE_DIR) then
+	if not Inode.get_inode_file_type(inode, InodeModeFlags.TYPE_DIR) then
 		Error.throw(Error.ENOTDIR, path)
 	end
 

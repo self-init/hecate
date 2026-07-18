@@ -1,8 +1,9 @@
-import * as Error from "common.error";
-import * as Inode from "vfs.inode";
-import {Mount, MountParentInfo} from "./mount"
+import { Error } from "../common/error";
+import type { Credentials } from "../processes/credentials";
+import type { Inode } from "./inode/init";
+import { get_inode_perms, get_inode_file_type } from "./inode/init";
+import { Mount, MountParentInfo } from "./mount";
 import * as Process from "processes.process";
-import * as Credentials from "processes.credentials";
 import * as Driver from "drivers.driver";
 
 export class Vfs {
@@ -74,8 +75,8 @@ export class Vfs {
 	// throws an error if no permission
 	check_inode_perm(cred: Credentials, inode: Inode, mask: integer, path: Path) {
 		if (cred.euid === 0) { return; }
-		if (!Inode.get_perms(inode, mask, cred.euid, cred.get_gids())) {
-			Error.throw(Error.EACCES, path);
+		if (!get_inode_perms(inode, mask, cred.euid, cred.get_gids())) {
+			throw new Error("EACCES", path);
 		}
 	}
 
@@ -88,7 +89,7 @@ export class Vfs {
 			let [parent_mount, mp_inode] = this.namei(mount_path);
 
 			if (mp_inode === null) {
-				Error.throw(Error.ENOENT, mount_path);
+				throw new Error("ENOENT", mount_path);
 			}
 			let mp_info: MountParentInfo = { mount: parent_mount, mountpoint: mp_inode }
 			let new_mount = new Mount(driver, root_inode, mp_info);
@@ -111,7 +112,7 @@ export class Vfs {
 
 	private get_inode_or_error(path: Path, process: Process): LuaMultiReturn<[Mount, Inode]> {
 		let [mount, inode] = this.namei(path, process.cred, process.cwd_mount, process.cwd_inode);
-		if (inode === null) { Error.throw(Error.ENOENT, path); }
+		if (inode === null) { throw new Error("ENOENT", path); }
 		return $multi(mount, inode);
 	}
 
@@ -144,8 +145,8 @@ export class Vfs {
 
 	create_file(process: Process, parent_path: Path, name: string, type: InodeModeFlags) {
 		let [mount, parent_inode] = this.get_inode_or_error(parent_path, process);
-		if (Inode.get_file_type(parent_inode, InodeModeFlags.TYPE_DIR) === null) {
-			Error.throw(Error.ENOTDIR, parent_path);
+		if (get_inode_file_type(parent_inode, InodeModeFlags.TYPE_DIR) === null) {
+			throw new Error("ENOTDIR", parent_path);
 		}
 		this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_WRITE, parent_path);
 		this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_EXEC, parent_path);
@@ -154,8 +155,8 @@ export class Vfs {
 
 	unlink(process: Process, path: Path) {
 		let [mount, inode] = this.get_inode_or_error(path, process);
-		if (!Inode.get_file_type(inode, InodeModeFlags.TYPE_DIR)) {
-			Error.throw(Error.EISDIR, path);
+		if (!get_inode_file_type(inode, InodeModeFlags.TYPE_DIR)) {
+			throw new Error("EISDIR", path);
 		}
 		let parent_path: Path = string.match(path, "^(.+)/[^/]+$")[0] || string.sub(path, 1, 1);
 		let [_, parent_inode] = this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode);
@@ -170,26 +171,26 @@ export class Vfs {
 		let name: string = string.match(path, "[^/]+$")[0] || (string.sub(path, 1, 1) === "/" ? "/" : ".");
 		let parent_path: Path = string.match(path, "^(.+)/[^/]+$")[0] || (string.sub(path, 1, 1) === "/" ? "/" : ".");
 		let [mount, parent_inode] = this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode);
-		if (parent_inode === null) { Error.throw(Error.ENOENT, parent_path); }
-		if (!Inode.get_file_type(parent_inode, InodeModeFlags.TYPE_DIR)) {
-			Error.throw(Error.EISDIR, parent_path);
+		if (parent_inode === null) { throw new Error("ENOENT", parent_path); }
+		if (!get_inode_file_type(parent_inode, InodeModeFlags.TYPE_DIR)) {
+			throw new Error("EISDIR", parent_path);
 		}
 		this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_WRITE, parent_path);
 		this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_EXEC, parent_path);
 
 		let [_, existing] = this.namei(path, process.cred, process.cwd_mount, process.cwd_inode);
-		if (existing !== null) { Error.throw(Error.EEXIST, path); }
+		if (existing !== null) { throw new Error("EEXIST", path); }
 		return mount.driver.create_file(parent_inode, name, InodeModeFlags.TYPE_DIR);
 	}
 
 	rmdir(process: Process, path: Path): void {
 		let [mount, inode] = this.get_inode_or_error(path, process);
-		if (!Inode.get_file_type(inode, InodeModeFlags.TYPE_DIR)) {
-			Error.throw(Error.ENOTDIR, path);
+		if (!get_inode_file_type(inode, InodeModeFlags.TYPE_DIR)) {
+			throw new Error("ENOTDIR", path);
 		}
 		let entries = mount.driver.read_dir(inode);
 		if (entries !== null && entries.length > 0) {
-			Error.throw(Error.ENOTEMPTY, path);
+			throw new Error("ENOTEMPTY", path);
 		}
 		let parent_path: Path = string.match(path, "^(.+)/[^/]+$")[0] || (string.sub(path, 1, 1) === "/" ? "/" : ".");
 		let [_, parent_inode] = this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode);
