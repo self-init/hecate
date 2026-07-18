@@ -46,7 +46,7 @@ function Process:new(kernel, path, argv)
 		pid               = 0,
 		ppid              = 0,
 		cred              = Credentials.create(),
-		fds               = FDTable:new(),
+		fds               = FDTable.create(),
 		current_directory = "/",
 		cwd_mount         = kernel.vfs.root_mount,
 		cwd_inode         = kernel.vfs.root_mount.root_inode,
