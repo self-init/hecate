@@ -3,28 +3,28 @@ import { btest } from "../common/bitwise";
 import { FileDescriptor } from "../vfs/fd/init";
 
 class FDTable {
-	private fds: FileDescriptor[] = [];
+	private fds: LuaTable<integer, FileDescriptor> = new LuaTable();
 
 	get(n: integer): FileDescriptor {
-		return this.fds[n];
+		return this.fds.get(n);
 	}
 
 	set(n: integer, fd: FileDescriptor) {
-		this.fds[n] = fd;
+		this.fds.set(n, fd);
 	}
 
 	close(n: integer) {
-		let fd = this.fds[n];
+		let fd = this.fds.get(n);
 		if (fd !== null) {
 			fd.close();
-			delete this.fds[n];
+			this.fds.delete(n);
 		}
 	}
 
 	// close all fds that were opened with O_CLOEXEC. Called on exec().
 	close_cloexec() {
 		let to_close: integer[] = [];
-		for (const [n, fd] of this.fds.entries()) {
+		for (const [n, fd] of pairs(this.fds)) {
 			if (btest(fd.flags, FileDescriptorOpenFlags.O_CLOEXEC)) {
 				to_close.push(n);
 			}
@@ -36,8 +36,8 @@ class FDTable {
 
 	insert(fd: FileDescriptor): integer {
 		let n = 3;
-		while (this.fds[n] !== null) { n += 1; };
-		this.fds[n] = fd;
+		while (this.fds.get(n) !== null) { n += 1; };
+		this.fds.set(n, fd);
 		return n;
 	}
 
