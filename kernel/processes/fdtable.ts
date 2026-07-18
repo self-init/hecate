@@ -42,7 +42,7 @@ class FDTable {
 	}
 
 	inherit(fdtable: FDTable) {
-		for (let i = 0; i < 2; i++) {
+		for (let i = 0; i < 3; i++) {
 			this.set(i, fdtable.get(i))
 		}
 	}
