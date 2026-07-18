@@ -28,4 +28,10 @@ export class BiMap<K, V> {
 		this.forward.delete(key);
 		this.reverse.delete(value);
 	}
+
+	*entries(): Generator<[K, V], void, void>  {
+		for (const [key, value] of this.forward) {
+			yield [key, value];
+		}
+	}
 }
