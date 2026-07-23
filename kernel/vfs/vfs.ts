@@ -4,7 +4,7 @@ import type { Inode } from "./inode/init";
 import { get_inode_perms, get_inode_file_type } from "./inode/init";
 import { Mount, MountParentInfo } from "./mount";
 import * as Process from "processes.process";
-import * as Driver from "drivers.driver";
+import { Driver } from "../drivers/driver";
 
 export class Vfs {
 	root_mount: Mount | null;

@@ -72,6 +72,7 @@ declare const enum InodeModeFlags {
 }
 
 declare type integer = number;
+declare type char = string; // string of length 1
 declare type UID = integer;
 declare type Path = string;
 declare type ErrorCode =
@@ -84,26 +85,26 @@ declare type ErrorCode =
 	| "ENOTEMPTY"
 	| "ENOTDIR";
 
-declare module "drivers.driver" {
-	interface Driver {
-		arch: unknown;
-		"new"(arch: unknown): Driver;
-		mount(path: string): Inode;
-		unmount(path: string): void;
-		get_inode(path: string): Inode;
-		lookup(dir_inode: Inode, name: string): Inode | null;
-		read_dir(inode: Inode): string[];
-		create_file(parent_inode: Inode, name: string, type: InodeModeFlags): Inode;
-		destroy_file(inode: Inode): void;
-		read_file(inode: Inode, offset: integer, length: integer): unknown;
-		write_file(inode: Inode, offset: integer, data: unknown): void;
-		ioctl(inode: Inode, request: integer, arg: any): unknown;
-	}
+// declare module "drivers.driver" {
+// 	interface Driver {
+// 		arch: unknown;
+// 		"new"(arch: unknown): Driver;
+// 		mount(path: string): Inode;
+// 		unmount(path: string): void;
+// 		get_inode(path: string): Inode;
+// 		lookup(dir_inode: Inode, name: string): Inode | null;
+// 		read_dir(inode: Inode): string[];
+// 		create_file(parent_inode: Inode, name: string, type: InodeModeFlags): Inode;
+// 		destroy_file(inode: Inode): void;
+// 		read_file(inode: Inode, offset: integer, length: integer): unknown;
+// 		write_file(inode: Inode, offset: integer, data: unknown): void;
+// 		ioctl(inode: Inode, request: integer, arg: any): unknown;
+// 	}
 
-	const Driver: Driver;
+// 	const Driver: Driver;
 
-	export = Driver;
-}
+// 	export = Driver;
+// }
 
 /** @noResolution */
 declare module "processes.process" {

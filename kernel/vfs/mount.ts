@@ -1,4 +1,4 @@
-import Driver from "drivers.driver";
+import { Driver } from "../drivers/driver";
 import type { Inode } from "./inode/init";
 
 export type MountParentInfo = { mount: Mount, mountpoint: Inode }
