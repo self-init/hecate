@@ -35,3 +35,7 @@ export class BiMap<K, V> {
 		}
 	}
 }
+
+export function create() {
+	return new BiMap();
+}
