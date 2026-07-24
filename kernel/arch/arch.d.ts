@@ -1,4 +1,6 @@
+import { Kernel } from "../kernel";
+
 export interface Arch {
-	init(): void;
+	init(kernel: Kernel): void;
 	step(): void;
 }

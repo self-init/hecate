@@ -25,7 +25,7 @@ function serialize(value: unknown, indent: string = ""): string {
 	}
 }
 
-class SerialFS extends BaseFS {
+export class SerialFS extends BaseFS {
 	host_path: Path;
 	data: Map<integer, string> = new Map();
 

@@ -1,6 +1,6 @@
 import { BaseFS } from "../common/basefs";
 
-class RamFS extends BaseFS {
+export class RamFS extends BaseFS {
 	data = new Map<integer, string>();
 
 	read_file(inode: Inode, offset: integer, length: integer): string {

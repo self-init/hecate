@@ -16,7 +16,7 @@ export class ProcessManager {
 	tick_count: integer = 0;
 	preemptive: boolean = this.detect_preemption();
 
-	constructor(arch: unknown) {
+	constructor() {
 		for (let i = 0; i < NUM_QUEUES; i++) {
 			this.queues.push([]);
 		}
@@ -149,8 +149,4 @@ export class ProcessManager {
 
 		return true;
 	}
-}
-
-export function create(arch: unknown): ProcessManager {
-	return new ProcessManager(arch);
 }
