@@ -1,4 +1,3 @@
-/// <reference path="../node_modules/lua-types/5.2.d.ts" />
 /// <reference path="../node_modules/@typescript-to-lua/language-extensions/index.d.ts" />
 
 declare const enum FileDescriptorOpenFlags {
@@ -84,50 +83,3 @@ declare type ErrorCode =
 	| "ENOEXEC"
 	| "ENOTEMPTY"
 	| "ENOTDIR";
-
-// declare module "drivers.driver" {
-// 	interface Driver {
-// 		arch: unknown;
-// 		"new"(arch: unknown): Driver;
-// 		mount(path: string): Inode;
-// 		unmount(path: string): void;
-// 		get_inode(path: string): Inode;
-// 		lookup(dir_inode: Inode, name: string): Inode | null;
-// 		read_dir(inode: Inode): string[];
-// 		create_file(parent_inode: Inode, name: string, type: InodeModeFlags): Inode;
-// 		destroy_file(inode: Inode): void;
-// 		read_file(inode: Inode, offset: integer, length: integer): unknown;
-// 		write_file(inode: Inode, offset: integer, data: unknown): void;
-// 		ioctl(inode: Inode, request: integer, arg: any): unknown;
-// 	}
-
-// 	const Driver: Driver;
-
-// 	export = Driver;
-// }
-
-/** @noResolution */
-declare module "processes.process" {
-
-	interface Process {
-		pid: integer;
-		ppid: integer;
-		cred: Credentials;
-		capabilities: integer;
-		fds: any[];
-		current_directory: string;
-		cwd_mount: import("./vfs/mount").Mount;
-		cwd_inode: Inode;
-		argv: LuaTable<string>;
-		envp: LuaTable<string>;
-		dead: boolean;
-		exit_code: integer;
-		coroutine: LuaThread;
-		kernel: unknown;
-		env: LuaTable;
-	}
-
-	const Process: Process;
-
-	export = Process;
-}

@@ -1,4 +1,4 @@
-import * as Process from "processes.process";
+import { Process } from "./process";
 
 let NUM_QUEUES: integer = 3;
 let QUANTA: integer[] = [2, 4, 8]; // slices per queue before demotion
@@ -9,7 +9,7 @@ type MetaInfo = { queue_level: integer, ticks_used: integer }
 
 export class ProcessManager {
 	process_id: integer = 1;
-	processes: Process[] = [];
+	processes = new Map<integer, Process>;
 	active_process: Process | null = null;
 	queues: Process[][] = [];
 	meta: MetaInfo[] = [];
@@ -34,7 +34,7 @@ export class ProcessManager {
 	add_process(process: Process) {
 		process.pid = this.process_id;
 		this.process_id += 1;
-		this.processes[process.pid] = process;
+		this.processes.set(process.pid, process);
 
 		this.meta[process.pid] = {
 			queue_level: 0,
@@ -45,15 +45,15 @@ export class ProcessManager {
 	}
 
 	get_process(pid: integer): Process | null {
-		return this.processes[pid] ?? null;
+		return this.processes.get(pid) ?? null;
 	}
 
 	remove_process(pid: integer) {
-		if (this.processes[pid]) {
-			this.processes[pid].dead = true
+		if (this.processes.has(pid)) {
+			this.processes.get(pid)!.dead = true;
 		}
 
-		delete this.processes[pid];
+		this.processes.delete(pid);
 		delete this.meta[pid];
 	}
 
@@ -96,6 +96,10 @@ export class ProcessManager {
 		let [process, level] = this.next_process();
 		if (process === null || level === null) { return false; }
 
+		if (process.coroutine === undefined) {
+			throw "Process has no active coroutine";
+		}
+
 		this.active_process = process;
 		let meta = this.meta[process.pid];
 
@@ -113,7 +117,7 @@ export class ProcessManager {
 		this.active_process = null;
 
 		if (!ok) {
-			let stderr = process.fds[2];
+			let stderr = process.fds.get(2);
 			if (stderr !== null) {
 				stderr.write(tostring(err) + "\n");
 			}
@@ -127,7 +131,7 @@ export class ProcessManager {
 			return true;
 		}
 
-		if (coroutine.status(process.coroutine) === "dead") {
+		if (process.coroutine !== undefined && coroutine.status(process.coroutine) === "dead") {
 			process.dead = true;
 			process.exit_code = process.exit_code || 0;
 			delete this.meta[process.pid];

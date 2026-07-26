@@ -1,7 +1,8 @@
 import { Inode } from "../../vfs/inode/init";
 import { BaseChrDev } from "../common/basechrdev";
+import type { CCArch } from "../../arch/cc/arch";
 
-export class Kbd extends BaseChrDev {
+export class Kbd extends BaseChrDev<CCArch> {
 	event_queue: string[] = [];
 
 	push_event(event: string) {

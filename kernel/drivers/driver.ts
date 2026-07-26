@@ -1,7 +1,9 @@
-export abstract class Driver {
-	arch: unknown;
+import type { Arch } from "../arch/arch";
 
-	constructor(arch: unknown) {
+export abstract class Driver<A extends Arch = Arch> {
+	arch: A;
+
+	constructor(arch: A) {
 		this.arch = arch;
 	};
 

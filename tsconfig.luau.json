@@ -1,0 +1,23 @@
+// Bundle target: Luau (Roblox's Lua dialect).
+// Build: npx tstl -p tsconfig.luau.json
+// Emits a single bundled file directly (replaces build/bundle.lua).
+//
+// NOTE: Luau's runtime lacks the standard io/os/coroutine surface the
+// native arch assumes, and there is no Luau arch yet. This reuses the
+// native startup entry as a placeholder; a dedicated arch/luau entry
+// will be needed before this bundle actually runs.
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"outDir": "output"
+	},
+	"exclude": ["kernel/arch/cc/**", "kernel/drivers/cc/**"],
+	"tstl": {
+		"luaTarget": "Luau",
+		"noImplicitSelf": false,
+		"noHeader": true,
+		"sourceMapTraceback": false,
+		"luaBundle": "hecate-luau.luau",
+		"luaBundleEntry": "kernel/arch/native/startup.ts"
+	}
+}

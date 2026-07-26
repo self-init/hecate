@@ -1,0 +1,22 @@
+// Bundle target: ComputerCraft (CC:Tweaked / Cobalt).
+// Cobalt is Lua 5.2-based (bit32, utf8), so luaTarget is "5.2".
+// tstl 1.37 has no dedicated Cobalt target.
+// Build: npx tstl -p tsconfig.cc.json
+// Emits a single bundled file directly (replaces build/bundle.lua).
+// Uses the CC arch entry (maps CC's term API to the TTY driver).
+// Requires the cc startup entry to be migrated to TypeScript.
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"outDir": "output"
+	},
+	"exclude": ["kernel/arch/native/**", "kernel/drivers/native/**"],
+	"tstl": {
+		"luaTarget": "5.2",
+		"noImplicitSelf": false,
+		"noHeader": true,
+		"sourceMapTraceback": false,
+		"luaBundle": "hecate-cc.lua",
+		"luaBundleEntry": "kernel/arch/cc/startup.ts"
+	}
+}

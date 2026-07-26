@@ -47,7 +47,7 @@ export abstract class BaseTty extends BaseChrDev implements Tty {
 	// "" → {}, ";4" → {0,4}.
 	private parse_csi_args(params: string): integer[] {
 		let args: integer[] = [];
-		for (const token of string.gmatch(params + ";", "(%d*);")) {
+		for (const [token] of string.gmatch(params + ";", "(%d*);")) {
 			args.push(tonumber(token) || 0);
 		}
 		return args;

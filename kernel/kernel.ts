@@ -1,9 +1,9 @@
-import Process from "processes.process";
 import { Arch } from "./arch/arch";
 import { RamFS } from "./drivers/agnostic/ramfs";
 import { SerialFS } from "./drivers/agnostic/serialfs";
 import { ProcessManager } from "./processes/manager";
 import { Vfs } from "./vfs/vfs";
+import { Process } from "./processes/process";
 
 export class Kernel {
 	arch: Arch;

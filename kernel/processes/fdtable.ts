@@ -2,7 +2,7 @@
 import { btest } from "../common/bitwise";
 import { FileDescriptor } from "../vfs/fd/init";
 
-class FDTable {
+export class FDTable {
 	private fds: LuaTable<integer, FileDescriptor> = new LuaTable();
 
 	get(n: integer): FileDescriptor {

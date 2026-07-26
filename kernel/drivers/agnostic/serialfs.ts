@@ -1,6 +1,7 @@
 import { BiMap } from "../../common/bimap";
 import { Inode } from "../../vfs/inode/init";
 import { BaseFS } from "../common/basefs";
+import type { Arch } from "../../arch/arch";
 
 function serialize(value: unknown, indent: string = ""): string {
 	let t = type(value);
@@ -29,7 +30,7 @@ export class SerialFS extends BaseFS {
 	host_path: Path;
 	data: Map<integer, string> = new Map();
 
-	constructor(arch: unknown, host_path: Path) {
+	constructor(arch: Arch, host_path: Path) {
 		super(arch);
 		this.host_path = host_path;
 	}

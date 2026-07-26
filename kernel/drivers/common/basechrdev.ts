@@ -1,8 +1,9 @@
 import { create_inode, Inode } from "../../vfs/inode/init";
 import { Error } from "../../common/error";
 import { Driver } from "../driver";
+import type { Arch } from "../../arch/arch";
 
-export abstract class BaseChrDev extends Driver {
+export abstract class BaseChrDev<A extends Arch = Arch> extends Driver<A> {
 	path: Path | undefined;
 	inode: Inode | undefined;
 	coroutine: LuaThread | undefined;
