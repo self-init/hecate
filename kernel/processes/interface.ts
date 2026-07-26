@@ -38,14 +38,7 @@ export function create(process: Process): ProcessInterface {
 		},
 
 		spawn(path, argv) {
-			let child = new Process(process.kernel, path, argv);
-			child.ppid = process.pid;
-			child.current_directory = process.current_directory;
-			child.cwd_mount = process.cwd_mount;
-			child.cwd_inode = process.cwd_inode;
-			child.fds.inherit(process.fds);
-			procman.add_process(child);
-			return child.pid;
+			return process.spawn(path, argv);
 		},
 
 		open(path, flags) {

@@ -34,7 +34,7 @@ export class Kernel {
 			this.procman.step();
 			let init = this.procman.get_process(1);
 			if (init === null || init.dead) {
-				throw "kernel panic: init (PID 1) died with exit code " + tostring(init && init.exit_code);
+				throw "init (PID 1) died with exit code " + tostring(init && init.exit_code);
 			}
 		}
 	}

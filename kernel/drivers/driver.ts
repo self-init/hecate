@@ -14,7 +14,9 @@ export abstract class Driver<A extends Arch = Arch> {
 	abstract read_dir(inode: Inode): string[];
 	abstract create_file(parent_inode: Inode, name: string, type: InodeModeFlags): Inode;
 	abstract destroy_file(inode: Inode): void;
-	abstract read_file(inode: Inode, offset: integer, length: integer): string;
+	// undefined signals "no data available" (Lua nil) for blocking reads;
+	// regular files always return a string.
+	abstract read_file(inode: Inode, offset: integer, length: integer): string | undefined;
 	abstract write_file(inode: Inode, offset: integer, data: string): integer;
 	abstract ioctl(inode: Inode, request: integer, arg: any): unknown;
 }

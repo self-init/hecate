@@ -50,7 +50,7 @@ export abstract class BaseChrDev<A extends Arch = Arch> extends Driver<A> {
 		return undefined;
 	}
 
-	abstract read_file(inode: Inode, offset: integer, length: integer): string;
+	abstract read_file(inode: Inode, offset: integer, length: integer): string | undefined;
 	abstract write_file(inode: Inode, offset: integer, data: unknown): integer;
 	abstract ioctl(inode: Inode, request: integer, arg: any): unknown;
 }

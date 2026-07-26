@@ -160,6 +160,15 @@ export abstract class BaseTty extends BaseChrDev implements Tty {
 	// of plain (non-ESC) characters in the NORMAL state are emitted with a single
 	// _write_raw call instead of one call per byte.
 	write_file(inode: Inode, offset: integer, data: string): integer {
+		let written = data.length;
+
+		// OPOST/ONLCR: map NL -> CR-NL on output so lines return to column 0.
+		// Applied before the ESC parser so the run optimisation sees the CRs.
+		if (band(this.termios.oflag, Termios.OPOST) !== 0 && band(this.termios.oflag, Termios.ONLCR) !== 0) {
+			let [translated] = string.gsub(data, "\n", "\r\n");
+			data = translated;
+		}
+
 		let i: integer = 1;
 		while (i <= data.length) {
 			let char = string.sub(data, i, i);
@@ -178,7 +187,7 @@ export abstract class BaseTty extends BaseChrDev implements Tty {
 				i += 1;
 			}
 		}
-		return data.length;
+		return written;
 	}
 
 	// Append `char` to the line being edited, echoing it if ECHO is enabled.
@@ -208,6 +217,7 @@ export abstract class BaseTty extends BaseChrDev implements Tty {
 			// Backspace: drop the last buffered char and visually erase it.
 			if (this.input_buf.length > 0) {
 				this.input_buf = string.sub(this.input_buf, 1, -2);
+				if (echo_on) { this.echo_erase(1); }
 			}
 		} else if (b === cc.get(Termios.VKILL)) {
 			// Kill line: discard the whole buffered line.
@@ -231,7 +241,7 @@ export abstract class BaseTty extends BaseChrDev implements Tty {
 	push_input(char: char) {
 		// ICRNL: map carriage return to newline on input.
 		if (band(this.termios.iflag, Termios.ICRNL) !== 0 && char === "\r") {
-			char = "\r"
+			char = "\n"
 		}
 
 		if (band(this.termios.lflag, Termios.ICANON) !== 0) {
@@ -246,8 +256,11 @@ export abstract class BaseTty extends BaseChrDev implements Tty {
 		}
 	}
 
-	read_file(inode: Inode, offset: integer, length: integer): string {
-		if (this.read_queue.length === 0) { return ""; }
+	read_file(inode: Inode, offset: integer, length: integer): string | undefined {
+		// No buffered line: return undefined (Lua nil) so a blocking read keeps
+		// yielding instead of returning empty data. Returning "" would make the
+		// caller treat the read as complete and spin.
+		if (this.read_queue.length === 0) { return undefined; }
 
 		let chunk = this.read_queue.shift()!;
 		// If the caller wants fewer bytes than this chunk holds, return the

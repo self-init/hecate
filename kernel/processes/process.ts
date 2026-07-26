@@ -112,6 +112,20 @@ export class Process {
 		this.fds.close(n);
 	}
 
+	// Spawn a child process, inheriting this process's cwd and file
+	// descriptors. Owned by Process (not the syscall layer) so the interface
+	// module needs no value dependency on Process, avoiding a require cycle.
+	spawn(path: Path, argv?: unknown): integer {
+		let child = new Process(this.kernel, path, argv);
+		child.ppid = this.pid;
+		child.current_directory = this.current_directory;
+		child.cwd_mount = this.cwd_mount;
+		child.cwd_inode = this.cwd_inode;
+		child.fds.inherit(this.fds);
+		this.kernel.procman.add_process(child);
+		return child.pid;
+	}
+
 	// Builds the sandboxed global environment for a process.
 	// Exposes safe Lua builtins and the ProcessInterface syscalls.
 	make_env() {
@@ -171,6 +185,9 @@ export class Process {
 		vfs.check_inode_perm(this.cred, inode, InodeModeFlags.MASK_EXEC, path);
 
 		let code = mount.driver.read_file(inode, 0, inode.size);
+		if (code === undefined) {
+			throw new Error("ENOEXEC", path);
+		}
 
 		let [chunk, err] = load(code, "@" + path, "t", this.make_env());
 		if (chunk === undefined) {

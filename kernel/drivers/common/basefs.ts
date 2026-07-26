@@ -37,7 +37,11 @@ export abstract class BaseFS extends Driver {
 		for (const [path, _] of this.inode_path_map.entries()) {
 			if (string.sub(path, 1, prefix.length) === prefix) {
 				let name = string.sub(path, prefix.length + 1);
-				if (name.length > 0 && !string.find(name, "/", 1, true)) {
+				// Destructure string.find to a single value: used directly under
+				// `!`, tstl wraps the multi-return in an always-truthy table, so
+				// the "no slash" test would always fail and drop every child.
+				let [slash] = string.find(name, "/", 1, true);
+				if (name.length > 0 && slash === undefined) {
 					entries.push(name);
 				}
 			}

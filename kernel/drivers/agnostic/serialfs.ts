@@ -8,7 +8,7 @@ function serialize(value: unknown, indent: string = ""): string {
 
 	switch(t) {
 		case "string":
-			return string.format("q", value);
+			return string.format("%q", value);
 		case "number":
 		case "boolean":
 			return tostring(value);
@@ -16,7 +16,18 @@ function serialize(value: unknown, indent: string = ""): string {
 			let parts: string[] = [];
 			let ni = indent + "  ";
 			for (const [k, v] of pairs(value)) {
-				let key = typeof(k) === "string" && string.match(k, "^[%a_][%w_]*$") ? k : ("[" + serialize(k) + "]");
+				// Bare identifier keys can be written unquoted; everything else
+				// (paths with "/", numeric keys) must be bracketed+quoted. Note
+				// the match is destructured to a single value: used directly in
+				// a boolean, tstl wraps the multi-return in a table that is
+				// always truthy, which would emit paths unquoted.
+				let key: string;
+				if (typeof(k) === "string") {
+					let [ident] = string.match(k, "^[%a_][%w_]*$");
+					key = ident !== undefined ? k : "[" + serialize(k) + "]";
+				} else {
+					key = "[" + serialize(k) + "]";
+				}
 				parts.push(ni + key + "=" + serialize(v, ni));
 			}
 			if (parts.length === 0) { return "{}" };
@@ -36,19 +47,38 @@ export class SerialFS extends BaseFS {
 	}
 
 	private save() {
-		let f = assert(io.open(this.host_path, "w"))[0];
+		let [f] = io.open(this.host_path, "w");
 		if (f === undefined) { return; }
+
+		// On-disk layout is a plain, tool-friendly format (see
+		// build/mkserialfs.lua): inodes and data keyed by inode id, paths as
+		// path -> id. Convert the in-memory tstl structures (a 1-based array,
+		// a Map and a BiMap) into that plain form so the file round-trips and
+		// stays compatible with the build-time packer.
+		let inodes = new LuaTable<integer, Inode>();
+		for (const [_, inode] of pairs(this.inodes as unknown as LuaTable<integer, Inode>)) {
+			inodes.set(inode.id, inode);
+		}
+		let data = new LuaTable<integer, string>();
+		for (const [id, content] of this.data) {
+			data.set(id, content);
+		}
+		let paths = new LuaTable<Path, integer>();
+		for (const [path, id] of this.inode_path_map.entries()) {
+			paths.set(path, id);
+		}
+
 		f.write(serialize({
 			inode_id: this.inode_id,
-			inodes: this.inodes,
-			paths: this.inode_path_map.entries(),
-			data: this.data
+			inodes: inodes,
+			paths: paths,
+			data: data
 		}));
 		f.close();
 	}
 
 	private static load(host_path: Path): LuaTable | null {
-		let f = assert(io.open(host_path, "r"))[0];
+		let [f] = io.open(host_path, "r");
 		if (f === undefined) { return null; }
 		let content = f.read("*a");
 		f.close();
@@ -61,10 +91,25 @@ export class SerialFS extends BaseFS {
 		let state = SerialFS.load(this.host_path);
 		if (state !== null) {
 			this.inode_id = state.get("inode_id");
-			this.inodes = state.get("inodes");
-			this.data = state.get("data");
+
+			// Rebuild the in-memory structures from the plain on-disk layout.
+			// Assigning through the typed fields lets tstl apply its array
+			// (1-based) and Map representations; a raw assignment of the disk
+			// tables would leave inodes off-by-one and data as a non-Map.
+			let inodes: Inode[] = [];
+			for (const [id, inode] of pairs(state.get("inodes") as LuaTable<integer, Inode>)) {
+				inodes[id] = inode;
+			}
+			this.inodes = inodes;
+
+			let data = new Map<integer, string>();
+			for (const [id, content] of pairs(state.get("data") as LuaTable<integer, string>)) {
+				data.set(id, content);
+			}
+			this.data = data;
+
 			let map = new BiMap<Path, integer>();
-			for (const [path, id] of pairs(state.get("paths"))) {
+			for (const [path, id] of pairs(state.get("paths") as LuaTable<Path, integer>)) {
 				if (typeof(path) !== "string") { throw "Attempted to load malformed serial file"; }
 				map.set(path, id);
 			}
