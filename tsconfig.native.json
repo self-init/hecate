@@ -1,0 +1,23 @@
+// Bundle target: native Lua, universal (runs on 5.1-5.4 + LuaJIT).
+// Emits version-detecting output via lualib helpers instead of
+// version-specific syntax, so one artifact runs on any native Lua.
+// Trades size/speed for portability; fine off-platform where CC's
+// constraints don't apply.
+// Build: npx tstl -p tsconfig.native.json
+// Emits a single bundled file directly (replaces build/bundle.lua).
+// Requires the native startup entry to be migrated to TypeScript.
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"outDir": "output"
+	},
+	"exclude": ["kernel/arch/cc/**", "kernel/drivers/cc/**"],
+	"tstl": {
+		"luaTarget": "universal",
+		"noImplicitSelf": false,
+		"noHeader": true,
+		"sourceMapTraceback": false,
+		"luaBundle": "hecate-native.lua",
+		"luaBundleEntry": "kernel/arch/native/startup.ts"
+	}
+}
