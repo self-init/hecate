@@ -1,4 +1,4 @@
-import { Error } from "../common/error";
+import { KError } from "../common/error";
 import type { Credentials } from "../processes/credentials";
 import type { Inode } from "./inode/init";
 import { get_inode_perms, get_inode_file_type } from "./inode/init";
@@ -76,7 +76,7 @@ export class Vfs {
 	check_inode_perm(cred: Credentials, inode: Inode, mask: integer, path: Path) {
 		if (cred.euid === 0) { return; }
 		if (!get_inode_perms(inode, mask, cred.euid, cred.get_gids())) {
-			throw new Error("EACCES", path);
+			throw new KError("EACCES", path);
 		}
 	}
 
@@ -89,7 +89,7 @@ export class Vfs {
 			let [parent_mount, mp_inode] = this.namei(mount_path);
 
 			if (mp_inode === undefined) {
-				throw new Error("ENOENT", mount_path);
+				throw new KError("ENOENT", mount_path);
 			}
 			let mp_info: MountParentInfo = { mount: parent_mount, mountpoint: mp_inode }
 			let new_mount = new Mount(driver, root_inode, mp_info);
@@ -112,7 +112,7 @@ export class Vfs {
 
 	private get_inode_or_error(path: Path, process: Process): LuaMultiReturn<[Mount, Inode]> {
 		let [mount, inode] = this.namei(path, process.cred, process.cwd_mount, process.cwd_inode);
-		if (inode === undefined) { throw new Error("ENOENT", path); }
+		if (inode === undefined) { throw new KError("ENOENT", path); }
 		return $multi(mount, inode);
 	}
 
@@ -145,8 +145,8 @@ export class Vfs {
 
 	create_file(process: Process, parent_path: Path, name: string, type: InodeModeFlags) {
 		let [mount, parent_inode] = this.get_inode_or_error(parent_path, process);
-		if (get_inode_file_type(parent_inode, InodeModeFlags.TYPE_DIR) === null) {
-			throw new Error("ENOTDIR", parent_path);
+		if (!get_inode_file_type(parent_inode, InodeModeFlags.TYPE_DIR)) {
+			throw new KError("ENOTDIR", parent_path);
 		}
 		this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_WRITE, parent_path);
 		this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_EXEC, parent_path);
@@ -156,7 +156,7 @@ export class Vfs {
 	unlink(process: Process, path: Path) {
 		let [mount, inode] = this.get_inode_or_error(path, process);
 		if (!get_inode_file_type(inode, InodeModeFlags.TYPE_DIR)) {
-			throw new Error("EISDIR", path);
+			throw new KError("EISDIR", path);
 		}
 		let parent_path: Path = string.match(path, "^(.+)/[^/]+$")[0] || string.sub(path, 1, 1);
 		let [_, parent_inode] = this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode);
@@ -171,26 +171,26 @@ export class Vfs {
 		let name: string = string.match(path, "[^/]+$")[0] || (string.sub(path, 1, 1) === "/" ? "/" : ".");
 		let parent_path: Path = string.match(path, "^(.+)/[^/]+$")[0] || (string.sub(path, 1, 1) === "/" ? "/" : ".");
 		let [mount, parent_inode] = this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode);
-		if (parent_inode === undefined) { throw new Error("ENOENT", parent_path); }
+		if (parent_inode === undefined) { throw new KError("ENOENT", parent_path); }
 		if (!get_inode_file_type(parent_inode, InodeModeFlags.TYPE_DIR)) {
-			throw new Error("EISDIR", parent_path);
+			throw new KError("EISDIR", parent_path);
 		}
 		this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_WRITE, parent_path);
 		this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_EXEC, parent_path);
 
 		let [_, existing] = this.namei(path, process.cred, process.cwd_mount, process.cwd_inode);
-		if (existing !== undefined) { throw new Error("EEXIST", path); }
+		if (existing !== undefined) { throw new KError("EEXIST", path); }
 		return mount.driver.create_file(parent_inode, name, InodeModeFlags.TYPE_DIR);
 	}
 
 	rmdir(process: Process, path: Path): void {
 		let [mount, inode] = this.get_inode_or_error(path, process);
 		if (!get_inode_file_type(inode, InodeModeFlags.TYPE_DIR)) {
-			throw new Error("ENOTDIR", path);
+			throw new KError("ENOTDIR", path);
 		}
 		let entries = mount.driver.read_dir(inode);
-		if (entries !== null && entries.length > 0) {
-			throw new Error("ENOTEMPTY", path);
+		if (entries.length > 0) {
+			throw new KError("ENOTEMPTY", path);
 		}
 		let parent_path: Path = string.match(path, "^(.+)/[^/]+$")[0] || (string.sub(path, 1, 1) === "/" ? "/" : ".");
 		let [_, parent_inode] = this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode);

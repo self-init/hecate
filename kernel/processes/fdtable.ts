@@ -15,7 +15,7 @@ export class FDTable {
 
 	close(n: integer) {
 		let fd = this.fds.get(n);
-		if (fd !== null) {
+		if (fd !== undefined) {
 			fd.close();
 			this.fds.delete(n);
 		}
@@ -36,7 +36,7 @@ export class FDTable {
 
 	insert(fd: FileDescriptor): integer {
 		let n = 3;
-		while (this.fds.get(n) !== null) { n += 1; };
+		while (this.fds.get(n) !== undefined) { n += 1; };
 		this.fds.set(n, fd);
 		return n;
 	}

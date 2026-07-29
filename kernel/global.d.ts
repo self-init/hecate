@@ -74,12 +74,3 @@ declare type integer = number;
 declare type char = string; // string of length 1
 declare type UID = integer;
 declare type Path = string;
-declare type ErrorCode =
-	| "ENOENT"
-	| "EACCES"
-	| "EBADF"
-	| "EEXIST"
-	| "EISDIR"
-	| "ENOEXEC"
-	| "ENOTEMPTY"
-	| "ENOTDIR";

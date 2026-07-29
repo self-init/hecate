@@ -8,14 +8,14 @@ class Pty extends BaseTty {
 	}
 
 	read_output(length: integer) {
-		if (this.output_buf.length === 0) { return null; }
+		if (this.output_buf.length === 0) { return undefined; }
 		let chunk = this.output_buf.shift();
 		if (chunk !== undefined && length > 0 && chunk.length >= length) {
 			this.output_buf.push(string.sub(chunk, length + 1));
 			chunk = string.sub(chunk, 1, length);
 			return chunk;
 		}
-		return null;
+		return undefined;
 	}
 
 	write_raw(char: char): void { }

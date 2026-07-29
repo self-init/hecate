@@ -10,7 +10,7 @@ type MetaInfo = { queue_level: integer, ticks_used: integer }
 export class ProcessManager {
 	process_id: integer = 1;
 	processes = new Map<integer, Process>;
-	active_process: Process | null = null;
+	active_process: Process | undefined = undefined;
 	queues: Process[][] = [];
 	meta: MetaInfo[] = [];
 	tick_count: integer = 0;
@@ -44,8 +44,8 @@ export class ProcessManager {
 		this.queues[0].push(process);
 	}
 
-	get_process(pid: integer): Process | null {
-		return this.processes.get(pid) ?? null;
+	get_process(pid: integer): Process | undefined {
+		return this.processes.get(pid);
 	}
 
 	remove_process(pid: integer) {
@@ -57,7 +57,7 @@ export class ProcessManager {
 		delete this.meta[pid];
 	}
 
-	private next_process(): LuaMultiReturn<[Process, integer] | [null, null]> {
+	private next_process(): LuaMultiReturn<[Process, integer] | [undefined, undefined]> {
 		for (let level = 0; level < NUM_QUEUES; level++) {
 			let queue = this.queues[level]
 			while (queue.length > 0) {
@@ -67,7 +67,7 @@ export class ProcessManager {
 				}
 			}
 		}
-		return $multi(null, null);
+		return $multi(undefined, undefined);
 	}
 
 	private boost_all() {
@@ -75,7 +75,7 @@ export class ProcessManager {
 			for (const process of this.queues[level]) {
 				if (!process.dead) {
 					let meta = this.meta[process.pid];
-					if (meta !== null) {
+					if (meta !== undefined) {
 						meta.queue_level = 0;
 						meta.ticks_used = 0;
 					}
@@ -94,7 +94,7 @@ export class ProcessManager {
 		}
 
 		let [process, level] = this.next_process();
-		if (process === null || level === null) { return false; }
+		if (process === undefined || level === undefined) { return false; }
 
 		if (process.coroutine === undefined) {
 			throw "Process has no active coroutine";
@@ -114,7 +114,7 @@ export class ProcessManager {
 			debug.sethook(process.coroutine, null);
 		}
 
-		this.active_process = null;
+		this.active_process = undefined;
 
 		if (!ok) {
 			let stderr = process.fds.get(2);

@@ -1,6 +1,6 @@
 import * as Bitwise from "../common/bitwise";
 import { band, freeze } from "../common/bitwise";
-import { Error } from "../common/error";
+import { KError } from "../common/error";
 import { resolve } from "../common/paths";
 import { Kernel } from "../kernel";
 import { FileDescriptor } from "../vfs/fd/init";
@@ -67,29 +67,29 @@ export class Process {
 		let cwd_inode = base_inode || this.cwd_inode;
 		let [mount, inode] = vfs.namei(path, this.cred, cwd_mount, cwd_inode);
 
-		if (inode === undefined || inode === null) {
+		if (inode === undefined) {
 			if (band(flags, FileDescriptorOpenFlags.O_CREAT) !== 0) {
 				let [name] = string.match(path, "[^/]+$") || path;
 				let [parent_path] = string.match(path, "^(.+)/[^/]+$") || (string.sub(path, 1, 1) === "/" ? "/" : ".");
 				let [parent_mount, parent_inode] = vfs.namei(parent_path, this.cred, cwd_mount, cwd_inode);
-				if (parent_inode === undefined || parent_inode === null) {
-					throw new Error("ENOENT", path);
+				if (parent_inode === undefined) {
+					throw new KError("ENOENT", path);
 				}
 				vfs.check_inode_perm(this.cred, parent_inode, InodeModeFlags.MASK_WRITE, path);
 				vfs.check_inode_perm(this.cred, parent_inode, InodeModeFlags.MASK_EXEC, path);
 				inode = parent_mount.driver.create_file(parent_inode, name, InodeModeFlags.TYPE_REG);
 				mount = parent_mount;
 			} else {
-				throw new Error("ENOENT", path);
+				throw new KError("ENOENT", path);
 			}
 		}
 
 		let is_dir = get_inode_file_type(inode, InodeModeFlags.TYPE_DIR);
 		if (is_dir && band(flags, FileDescriptorOpenFlags.O_DIRECTORY) === 0) {
-			throw new Error("EISDIR", path);
+			throw new KError("EISDIR", path);
 		}
 		if (!is_dir && band(flags, FileDescriptorOpenFlags.O_DIRECTORY) !== 0) {
-			throw new Error("ENOTDIR", path);
+			throw new KError("ENOTDIR", path);
 		}
 
 		let accmode = band(flags, 0x0003);
@@ -174,24 +174,24 @@ export class Process {
 		let vfs = this.kernel.vfs;
 		let [mount, inode] = vfs.namei(path, this.cred, this.cwd_mount, this.cwd_inode);
 
-		if (inode === undefined || inode === null) {
-			throw new Error("ENOENT", path);
+		if (inode === undefined) {
+			throw new KError("ENOENT", path);
 		}
 
 		if (!get_inode_file_type(inode, InodeModeFlags.TYPE_REG)) {
-			throw new Error("ENOEXEC", path);
+			throw new KError("ENOEXEC", path);
 		}
 
 		vfs.check_inode_perm(this.cred, inode, InodeModeFlags.MASK_EXEC, path);
 
 		let code = mount.driver.read_file(inode, 0, inode.size);
 		if (code === undefined) {
-			throw new Error("ENOEXEC", path);
+			throw new KError("ENOEXEC", path);
 		}
 
 		let [chunk, err] = load(code, "@" + path, "t", this.make_env());
 		if (chunk === undefined) {
-			throw new Error("ENOEXEC", path);
+			throw new KError("ENOEXEC", path);
 		}
 
 		this.coroutine = coroutine.create(chunk);
@@ -206,12 +206,12 @@ export class Process {
 		let vfs = this.kernel.vfs;
 		let [mount, inode] = vfs.namei(path, this.cred, this.cwd_mount, this.cwd_inode);
 
-		if (inode === undefined || inode === null) {
-			throw new Error("ENOENT", path);
+		if (inode === undefined) {
+			throw new KError("ENOENT", path);
 		}
 
 		if (!get_inode_file_type(inode, InodeModeFlags.TYPE_DIR)) {
-			throw new Error("ENOTDIR", path);
+			throw new KError("ENOTDIR", path);
 		}
 
 		vfs.check_inode_perm(this.cred, inode, InodeModeFlags.MASK_EXEC, path);

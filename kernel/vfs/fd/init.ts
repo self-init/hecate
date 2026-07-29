@@ -3,7 +3,7 @@
 import { Mount } from "../mount";
 import { band, btest } from "../../common/bitwise";
 import type { Inode } from "../inode/init";
-import { Error } from "../../common/error"
+import { KError } from "../../common/error"
 
 export class FileDescriptor {
 	mount: Mount;
@@ -33,10 +33,10 @@ export class FileDescriptor {
 
 	read(length: integer) {
 		if (btest(this.flags, FileDescriptorOpenFlags.O_DIRECTORY)) {
-			throw new Error("EISDIR", this.path);
+			throw new KError("EISDIR", this.path);
 		}
 		let data = this.driver.read_file(this.inode, this.offset, length);
-		if (data !== null) {
+		if (data !== undefined) {
 			let n: integer = type(data) === "string" ? (data as string).length : 0;
 			this.offset += n;
 		}
@@ -45,7 +45,7 @@ export class FileDescriptor {
 
 	write(data: any): integer {
 		if (btest(this.flags, FileDescriptorOpenFlags.O_DIRECTORY)) {
-			throw new Error("EISDIR", this.path);
+			throw new KError("EISDIR", this.path);
 		}
 		if (band(this.flags, FileDescriptorOpenFlags.O_APPEND) !== 0) {
 			this.offset = this.inode.size;

@@ -33,7 +33,7 @@ export class Kernel {
 			this.arch.step();
 			this.procman.step();
 			let init = this.procman.get_process(1);
-			if (init === null || init.dead) {
+			if (init === undefined || init.dead) {
 				throw "init (PID 1) died with exit code " + tostring(init && init.exit_code);
 			}
 		}

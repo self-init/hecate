@@ -78,7 +78,7 @@ export abstract class BaseTty extends BaseChrDev implements Tty {
 	// (0 conventionally means "use the default" in CSI parameters).
 	private get_arg(args: integer[], index: integer, def: integer): integer {
 		let v: integer = args[index];
-		return (v !== null && v !== 0) ? v : def;
+		return (v !== undefined && v !== 0) ? v : def;
 	}
 
 	private handle_csi(params: string, final: char) {

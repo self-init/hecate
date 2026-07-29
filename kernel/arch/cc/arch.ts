@@ -59,7 +59,7 @@ export class CCArch implements Arch {
 				let target_pid, target_proc;
 				for (const [pid, proc] of this.kernel?.procman.processes!.entries()!) {
 					if (pid !== 0 && !proc.dead) {
-						if (target_pid === null || pid > target_pid!) {
+						if (target_pid === undefined || pid > target_pid!) {
 							target_pid = pid;
 							target_proc = proc;
 						}

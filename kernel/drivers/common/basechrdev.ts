@@ -1,5 +1,5 @@
 import { create_inode, Inode } from "../../vfs/inode/init";
-import { Error } from "../../common/error";
+import { KError } from "../../common/error";
 import { Driver } from "../driver";
 import type { Arch } from "../../arch/arch";
 
@@ -25,7 +25,7 @@ export abstract class BaseChrDev<A extends Arch = Arch> extends Driver<A> {
 	}
 
 	read_dir(inode: Inode): string[] {
-		throw new Error("ENOTDIR", this.path || "");
+		throw new KError("ENOTDIR", this.path || "");
 	}
 
 	get_inode(path: Path): Inode | undefined {
@@ -33,7 +33,7 @@ export abstract class BaseChrDev<A extends Arch = Arch> extends Driver<A> {
 	}
 
 	create_file(parent_inode: Inode, name: string, type: InodeModeFlags): Inode {
-		throw new Error("ENOTDIR", this.path || "");
+		throw new KError("ENOTDIR", this.path || "");
 	}
 
 	destroy_file(inode: Inode): void {

@@ -1,7 +1,7 @@
 /** @noSelfInFile */
 
 import { btest } from "../common/bitwise";
-import { Error } from "../common/error";
+import { KError } from "../common/error";
 import { Process } from "./process";
 
 export interface ProcessInterface {
@@ -52,7 +52,7 @@ export function create(process: Process): ProcessInterface {
 		read(fd, length) {
 			let f = process.fds.get(fd);
 			if (f === undefined) {
-				throw new Error("EBADF", "invalid file descriptor " + tostring(fd));
+				throw new KError("EBADF", "invalid file descriptor " + tostring(fd));
 			}
 			if (!btest(f.flags, FileDescriptorOpenFlags.O_NONBLOCK)) {
 				let data;
@@ -69,7 +69,7 @@ export function create(process: Process): ProcessInterface {
 		write(fd, data) {
 			let f = process.fds.get(fd);
 			if (f === undefined) {
-				throw new Error("EBADF", "invalid file descriptor " + tostring(fd));
+				throw new KError("EBADF", "invalid file descriptor " + tostring(fd));
 			}
 			return f.write(data);
 		},
@@ -77,7 +77,7 @@ export function create(process: Process): ProcessInterface {
 		ioctl(fd, request, arg) {
 			let f = process.fds.get(fd);
 			if (f === undefined) {
-				throw new Error("EBADF", "invalid file descriptor " + tostring(fd));
+				throw new KError("EBADF", "invalid file descriptor " + tostring(fd));
 			}
 			f.ioctl(request, arg);
 		},
@@ -85,7 +85,7 @@ export function create(process: Process): ProcessInterface {
 		seek(fd, offset, whence) {
 			let f = process.fds.get(fd);
 			if (f === undefined) {
-				throw new Error("EBADF", "invalid file descriptor " + tostring(fd));
+				throw new KError("EBADF", "invalid file descriptor " + tostring(fd));
 			}
 			return f.seek(offset, whence);
 		},
@@ -93,10 +93,10 @@ export function create(process: Process): ProcessInterface {
 		getdents(fd) {
 			let f = process.fds.get(fd);
 			if (f === undefined) {
-				throw new Error("EBADF", "invalid file descriptor " + tostring(fd));
+				throw new KError("EBADF", "invalid file descriptor " + tostring(fd));
 			}
 			if (!btest(f.flags, FileDescriptorOpenFlags.O_DIRECTORY)) {
-				throw new Error("ENOTDIR", "fd " + tostring(fd) + " is not a directory fd");
+				throw new KError("ENOTDIR", "fd " + tostring(fd) + " is not a directory fd");
 			}
 			let entries = f.driver.read_dir(f.inode);
 			if (!entries.has(".")) {
@@ -112,10 +112,10 @@ export function create(process: Process): ProcessInterface {
 		openat(dirfd, path, flags) {
 			let dir_f = process.fds.get(dirfd);
 			if (dir_f === undefined) {
-				throw new Error("EBADF", "invalid file descriptor " + tostring(dirfd));
+				throw new KError("EBADF", "invalid file descriptor " + tostring(dirfd));
 			}
 			if (!btest(dir_f.flags, FileDescriptorOpenFlags.O_DIRECTORY)) {
-				throw new Error("ENOTDIR", "fd " + tostring(dirfd) + " is not a directory fd");
+				throw new KError("ENOTDIR", "fd " + tostring(dirfd) + " is not a directory fd");
 			}
 			return process.open_fd(path, flags, dir_f.mount, dir_f.inode);
 		},
@@ -152,7 +152,7 @@ export function create(process: Process): ProcessInterface {
 
 		wait(pid) {
 			let proc = procman.get_process(pid);
-			while (proc !== undefined && proc !== null && !proc.dead) {
+			while (proc !== undefined && !proc.dead) {
 				coroutine.yield();
 				proc = procman.get_process(pid);
 			}
@@ -171,7 +171,7 @@ export function create(process: Process): ProcessInterface {
 			let code, found_path;
 			for (const path of candidates) {
 				let [mount, inode] = vfs.namei(path);
-				if (inode !== undefined && inode !== null && mount !== undefined) {
+				if (inode !== undefined && mount !== undefined) {
 					code = mount.driver.read_file(inode, 0, inode.size);
 					found_path = path;
 					break;

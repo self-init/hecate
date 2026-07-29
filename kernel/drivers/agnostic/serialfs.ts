@@ -77,19 +77,19 @@ export class SerialFS extends BaseFS {
 		f.close();
 	}
 
-	private static load(host_path: Path): LuaTable | null {
+	private static load(host_path: Path): LuaTable | undefined {
 		let [f] = io.open(host_path, "r");
-		if (f === undefined) { return null; }
+		if (f === undefined) { return undefined; }
 		let content = f.read("*a");
 		f.close();
 		let fn = load("return " + content)[0];
-		if (fn === undefined) { return null; }
+		if (fn === undefined) { return undefined; }
 		return fn();
 	}
 
 	mount(resolved_path: Path): Inode {
 		let state = SerialFS.load(this.host_path);
-		if (state !== null) {
+		if (state !== undefined) {
 			this.inode_id = state.get("inode_id");
 
 			// Rebuild the in-memory structures from the plain on-disk layout.
