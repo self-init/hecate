@@ -1,8 +1,16 @@
 /** @noSelfInFile */
 
 import { btest } from "../common/bitwise";
-import { KError } from "../common/error";
+import { KError, Result } from "../common/error";
 import { Process } from "./process";
+
+function toMulti<T>(r: Result<T>): LuaMultiReturn<[T | undefined, KError | undefined]> {
+	return $multi(r.ok ? r.value : undefined, r.ok ? undefined : r.error);
+}
+
+function toUserland<T>(r: Result<T>): LuaMultiReturn<[T | undefined, string | undefined]> {
+	return $multi(r.ok ? r.value : undefined, r.ok ? undefined : tostring(r.error));
+}
 
 export interface ProcessInterface {
 	exec(this: void, path: Path): void;
@@ -133,7 +141,7 @@ export function create(process: Process): ProcessInterface {
 		},
 
 		read_dir(path) {
-			return vfs.read_dir(process, path);
+			return toUserland(vfs.read_dir(process, path));
 		},
 
 		getcwd() {
