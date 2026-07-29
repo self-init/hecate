@@ -47,7 +47,3 @@ export class FDTable {
 		}
 	}
 }
-
-export function create(): FDTable {
-	return new FDTable();
-}

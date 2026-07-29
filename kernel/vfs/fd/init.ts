@@ -75,7 +75,3 @@ export class FileDescriptor {
 		return this.offset;
 	}
 }
-
-export function create(mount: Mount, inode: Inode, path: Path, flags: integer) {
-	return new FileDescriptor(mount, inode, path, flags);
-}

@@ -17,13 +17,3 @@ export class Mount {
 		this.children = [];
 	}
 }
-
-export function create(driver: Driver, parent: Mount | undefined, mountpoint_inode : Inode | undefined, root_inode: Inode): Mount {
-	let parent_info: MountParentInfo | undefined = undefined;
-
-	if (parent !== undefined && mountpoint_inode !== undefined) {
-		parent_info = { mount: parent, mountpoint: mountpoint_inode };
-	}
-
-	return new Mount(driver, root_inode, parent_info);
-}

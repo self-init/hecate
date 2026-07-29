@@ -204,7 +204,3 @@ export class Vfs {
 		return success();
 	}
 }
-
-export function create(): Vfs {
-	return new Vfs();
-}

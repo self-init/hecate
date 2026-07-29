@@ -68,7 +68,3 @@ export class Credentials {
 		return gids;
 	}
 }
-
-export function create(): Credentials {
-    return new Credentials();
-}

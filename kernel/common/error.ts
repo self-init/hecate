@@ -60,6 +60,8 @@ export function fromCatch(e: unknown): KError {
 	return new KError("EIO", tostring(e));
 }
 
+
+
 // export class Error {
 // 	code: ErrorCode;
 // 	message: string;
