@@ -26,7 +26,7 @@ export interface ProcessInterface {
 	unlink(this: void, path: Path): void;
 	mkdir(this: void, path: Path): void;
 	rmdir(this: void, path: Path): void;
-	read_dir(this: void, path: Path): void;
+	read_dir(this: void, path: Path): LuaMultiReturn<[string[] | undefined, string | undefined]>;
 	getcwd(this: void, ): Path;
 	chdir(this: void, path: Path): void;
 	exit(this: void, code: integer): void;
