@@ -1,4 +1,4 @@
-import { KError } from "../common/error";
+import { err, isErr, isOk, KError, ok, Result, success, unwrap } from "../common/error";
 import type { Credentials } from "../processes/credentials";
 import type { Inode } from "./inode/init";
 import { get_inode_perms, get_inode_file_type } from "./inode/init";
@@ -122,19 +122,18 @@ export class Vfs {
 		return mount.driver.read_file(inode, offset, length);
 	}
 
-	read_dir(process: Process, path: Path): string[] {
+	read_dir(process: Process, path: Path): Result<string[]> {
 		let [mount, inode] = this.get_inode_or_error(path, process);
 		this.check_inode_perm(process.cred, inode, InodeModeFlags.MASK_READ, path);
-		let entries = mount.driver.read_dir(inode);
+		let dir_result = mount.driver.read_dir(inode);
 
-		if (!entries.includes(".")) {
-			entries.push(".");
-		}
-		if (!entries.includes("..")) {
-			entries.push("..");
-		}
+		if (isErr(dir_result)) return dir_result;
+		let entries = unwrap(dir_result);
 
-		return entries;
+		if (!entries.includes(".")) entries.push(".");
+		if (!entries.includes("..")) entries.push("..");
+
+		return ok(entries);
 	}
 
 	write_file(process: Process, path: Path, offset: integer, data: string) {
@@ -183,14 +182,14 @@ export class Vfs {
 		return mount.driver.create_file(parent_inode, name, InodeModeFlags.TYPE_DIR);
 	}
 
-	rmdir(process: Process, path: Path): void {
+	rmdir(process: Process, path: Path): Result<void> {
 		let [mount, inode] = this.get_inode_or_error(path, process);
 		if (!get_inode_file_type(inode, InodeModeFlags.TYPE_DIR)) {
 			throw new KError("ENOTDIR", path);
 		}
-		let entries = mount.driver.read_dir(inode);
-		if (entries.length > 0) {
-			throw new KError("ENOTEMPTY", path);
+		let dir_result = mount.driver.read_dir(inode);
+		if (isOk(dir_result) && unwrap(dir_result).length > 0) {
+			return err("ENOTEMPTY", path);
 		}
 		let parent_path: Path = string.match(path, "^(.+)/[^/]+$")[0] || (string.sub(path, 1, 1) === "/" ? "/" : ".");
 		let [_, parent_inode] = this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode);
@@ -201,6 +200,8 @@ export class Vfs {
 			parent_inode.links -= 1;
 		}
 		mount.driver.destroy_file(inode);
+
+		return success();
 	}
 }
 

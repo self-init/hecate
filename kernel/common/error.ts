@@ -8,7 +8,13 @@ declare type ErrorCode =
 	| "EISDIR"
 	| "ENOEXEC"
 	| "ENOTEMPTY"
-	| "ENOTDIR";
+	| "ENOTDIR"
+	| "EPERM"
+	| "EINVAL"
+	| "EIO"
+	| "EAGAIN"
+	| "ENOSPC"
+	| "EMFILE";
 
 export class KError extends Error {
 	code: ErrorCode;
@@ -18,32 +24,41 @@ export class KError extends Error {
 		super();
 		this.code = code;
 	}
+
+
 }
 
-export type Result<T> = [ok: true, value: T] | [ok: false, value: KError];
+export type Result<T> = { ok: true, value: T } | { ok: false, error: KError };
 
 export function ok<T>(v: T): Result<T> {
-	return [true, v];
+	return { ok: true, value: v };
 }
 
 export function err<T>(code: ErrorCode, message: string): Result<T> {
-	return [false, new KError(code, message)];
+	return { ok: false, error: new KError(code, message) };
 }
 
 export function isOk<T>(r: Result<T>) {
-	return r[0];
+	return r.ok;
 }
 
 export function isErr<T>(r: Result<T>) {
-	return !r[1];
+	return !r.ok;
 }
 
 export function unwrap<T>(r: Result<T>): T {
-	if (!r[0]) { throw r[1]; }
-	return r[1];
+	if (!r.ok) { throw r.error; }
+	return r.value;
 }
 
+export function success(): Result<void> {
+	return { ok: true, value: undefined };
+}
 
+export function fromCatch(e: unknown): KError {
+	if (e instanceof KError) return e;
+	return new KError("EIO", tostring(e));
+}
 
 // export class Error {
 // 	code: ErrorCode;

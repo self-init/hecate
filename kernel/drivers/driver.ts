@@ -1,4 +1,5 @@
 import type { Arch } from "../arch/arch";
+import type { Result } from "../common/error";
 
 export abstract class Driver<A extends Arch = Arch> {
 	arch: A;
@@ -11,7 +12,7 @@ export abstract class Driver<A extends Arch = Arch> {
 	abstract unmount(path: Path): void;
 	abstract get_inode(path: Path): Inode | undefined;
 	abstract lookup(dir_inode: Inode, name: string): Inode | undefined;
-	abstract read_dir(inode: Inode): string[];
+	abstract read_dir(inode: Inode): Result<string[]>;
 	abstract create_file(parent_inode: Inode, name: string, type: InodeModeFlags): Inode;
 	abstract destroy_file(inode: Inode): void;
 	// undefined signals "no data available" (Lua nil) for blocking reads;

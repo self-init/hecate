@@ -1,7 +1,7 @@
 import { BiMap } from "../../common/bimap";
 import { Inode, create_inode, get_inode_file_type } from "../../vfs/inode/init";
 import { Driver } from "../driver";
-import { KError } from "../../common/error";
+import { err, KError, ok, Result } from "../../common/error";
 import { join } from "../../common/paths";
 
 export abstract class BaseFS extends Driver {
@@ -25,9 +25,9 @@ export abstract class BaseFS extends Driver {
 		}
 	}
 
-	read_dir(inode: Inode): string[] {
+	read_dir(inode: Inode): Result<string[]> {
 		if (!get_inode_file_type(inode, InodeModeFlags.TYPE_DIR)) {
-			throw new KError("ENOTDIR", tostring(inode.id));
+			return err("ENOTDIR", tostring(inode.id));
 		}
 
 		let inode_path = this.inode_path_map.getKey(inode.id);
@@ -47,7 +47,7 @@ export abstract class BaseFS extends Driver {
 			}
 		}
 
-		return entries;
+		return ok(entries);
 	}
 
 	get_inode(path: Path): Inode | undefined {
