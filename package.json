@@ -1,6 +1,6 @@
 {
   "name": "hecate",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.1",
   "description": "A Unix-like kernel written in TypeScript, compiled to Lua with TSTL, for ComputerCraft and standard Lua runtimes.",
   "main": "index.js",
   "directories": {
