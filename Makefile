@@ -79,3 +79,18 @@ $(docsdir):
 
 clean:
 	rm -rf $(out)
+
+# Usage: make release VERSION=0.1.0-alpha.2
+# Does a clean full build first so a broken tree never gets tagged, then
+# bumps package.json/package-lock.json, commits, and tags v$(VERSION).
+# Does not push — run `git push --follow-tags` afterwards.
+release:
+	$(if $(VERSION),,$(error VERSION is not set. Usage: make release VERSION=x.y.z))
+	@git diff --quiet && git diff --cached --quiet || { echo "error: working tree is dirty; commit or stash first" >&2; exit 1; }
+	$(MAKE) clean
+	$(MAKE) all
+	npm version $(VERSION) -m "Release v%s"
+
+.PHONY: all rootfs native-all native-minified native luau computercraft-all \
+	computercraft-minified computercraft computercraft-installer documentation \
+	clean release
