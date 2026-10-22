@@ -40,7 +40,7 @@ export class Vfs {
 	}
 
 	namei(path: Path, cred?: Credentials, cwd_mount?: Mount, cwd_inode?: Inode): Result<[Mount, Inode]> {
-		if (this.root_mount === undefined) { return err("EEXIST", "Attempted to get file with no root mount"); }
+		if (this.root_mount === undefined) { return err("EIO", "Attempted to get file with no root mount"); }
 		const is_absolute = string.sub(path, 1, 1) === "/";
 		let mount: Mount = is_absolute ? this.root_mount : (cwd_mount || this.root_mount);
 		let inode: Inode = is_absolute ? this.root_mount?.root_inode : (cwd_inode || this.root_mount?.root_inode);
@@ -53,14 +53,13 @@ export class Vfs {
 				continue;
 			}
 
-			if (cred !== undefined) {
-				this.check_inode_perm(cred, inode, InodeModeFlags.MASK_EXEC, component);
+			if (cred !== undefined && !this.has_inode_perm(cred, inode, InodeModeFlags.MASK_EXEC)) {
+				return err("EACCES", path);
 			}
 
 			const next_inode: Inode | undefined = mount.driver.lookup(inode, component);
 			if (next_inode === undefined) {
 				return err("ENOENT", path);
-				//return $multi(mount, undefined); // not found; return mount ctx so callers can create files
 			}
 
 			const child_mount: Mount = mount.children[next_inode.id];
@@ -73,10 +72,14 @@ export class Vfs {
 
 	// Check permissions on an inode.
 	// euid === 0 always passes
+	private has_inode_perm(cred: Credentials, inode: Inode, mask: integer): boolean {
+		if (cred.euid === 0) { return true; }
+		return get_inode_perms(inode, mask, cred.euid, cred.get_gids());
+	}
+
 	// throws an error if no permission
 	check_inode_perm(cred: Credentials, inode: Inode, mask: integer, path: Path) {
-		if (cred.euid === 0) { return; }
-		if (!get_inode_perms(inode, mask, cred.euid, cred.get_gids())) {
+		if (!this.has_inode_perm(cred, inode, mask)) {
 			throw new KError("EACCES", path);
 		}
 	}

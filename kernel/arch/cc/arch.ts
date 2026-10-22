@@ -33,7 +33,7 @@ export class CCArch implements Arch {
 	}
 
 	step() {
-		let event, p1, p2 = os.pullEventRaw();
+		let [event, p1] = os.pullEventRaw();
 		if (typeof event !== "string") { return; }
 		switch (event) {
 			case "timer":

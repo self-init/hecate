@@ -1,15 +1,17 @@
 /** @noSelfInFile */
 
 import { btest } from "../common/bitwise";
-import { KError, Result } from "../common/error";
+import { KError, ok, Result } from "../common/error";
 import { Process } from "./process";
 
 function toMulti<T>(r: Result<T>): LuaMultiReturn<[T | undefined, KError | undefined]> {
 	return $multi(r.ok ? r.value : undefined, r.ok ? undefined : r.error);
 }
 
-function toUserland<T>(r: Result<T>): LuaMultiReturn<[T | undefined, string | undefined]> {
-	return $multi(r.ok ? r.value : undefined, r.ok ? undefined : tostring(r.error));
+// Successful void results become `true`, so `if not rmdir(p)` still works in userland
+function toUserland<T>(r: Result<T>): LuaMultiReturn<[Exclude<T, void> | true | undefined, string | undefined]> {
+	if (!r.ok) { return $multi(undefined, tostring(r.error)); }
+	return $multi(r.value === undefined ? true : r.value as Exclude<T, void>, undefined);
 }
 
 export interface ProcessInterface {
@@ -21,12 +23,12 @@ export interface ProcessInterface {
 	write(this: void, fd: integer, data: string): integer;
 	ioctl(this: void, fd: integer, request: any, arg: any): any;
 	seek(this: void, fd: integer, offset: integer, whence: FileDescriptorOpenFlags): integer;
-	getdents(this: void, fd: integer): LuaTable<integer, string>;
+	getdents(this: void, fd: integer): LuaMultiReturn<[string[] | true | undefined, string | undefined]>;
 	openat(this: void, dirfd: integer, path: Path, flags: integer): integer;
 	unlink(this: void, path: Path): void;
 	mkdir(this: void, path: Path): void;
-	rmdir(this: void, path: Path): void;
-	read_dir(this: void, path: Path): LuaMultiReturn<[string[] | undefined, string | undefined]>;
+	rmdir(this: void, path: Path): LuaMultiReturn<[true | undefined, string | undefined]>;
+	read_dir(this: void, path: Path): LuaMultiReturn<[string[] | true | undefined, string | undefined]>;
 	getcwd(this: void, ): Path;
 	chdir(this: void, path: Path): void;
 	exit(this: void, code: integer): void;
@@ -106,15 +108,17 @@ export function create(process: Process): ProcessInterface {
 			if (!btest(f.flags, FileDescriptorOpenFlags.O_DIRECTORY)) {
 				throw new KError("ENOTDIR", "fd " + tostring(fd) + " is not a directory fd");
 			}
-			let entries = f.driver.read_dir(f.inode);
-			if (!entries.has(".")) {
-				table.insert(entries, ".");
+			let r = f.driver.read_dir(f.inode) as Result<string[]>;
+			if (!r.ok) { return toUserland(r); }
+			let entries = r.value;
+			if (!entries.includes(".")) {
+				entries.push(".");
 			}
-			if (!entries.has("..")) {
-				table.insert(entries, "..");
+			if (!entries.includes("..")) {
+				entries.push("..");
 			}
 
-			return entries;
+			return toUserland(ok(entries));
 		},
 
 		openat(dirfd, path, flags) {
@@ -137,7 +141,7 @@ export function create(process: Process): ProcessInterface {
 		},
 
 		rmdir(path) {
-			vfs.rmdir(process, path);
+			return toUserland(vfs.rmdir(process, path));
 		},
 
 		read_dir(path) {
