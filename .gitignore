@@ -1,4 +1,6 @@
 output
-docs
+claude-docs/
+CLAUDE.md
+.claude/
 
 node_modules/

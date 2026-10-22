@@ -39,8 +39,8 @@ export class Vfs {
 		return $multi(parent_mount, parent_inode || parent_mount.root_inode)
 	}
 
-	namei(path: Path, cred?: Credentials, cwd_mount?: Mount, cwd_inode?: Inode): LuaMultiReturn<[Mount, Inode | undefined]> {
-		if (this.root_mount === undefined) { error("Attempted to get file with no root mount", 2); }
+	namei(path: Path, cred?: Credentials, cwd_mount?: Mount, cwd_inode?: Inode): Result<[Mount, Inode]> {
+		if (this.root_mount === undefined) { return err("EEXIST", "Attempted to get file with no root mount"); }
 		const is_absolute = string.sub(path, 1, 1) === "/";
 		let mount: Mount = is_absolute ? this.root_mount : (cwd_mount || this.root_mount);
 		let inode: Inode = is_absolute ? this.root_mount?.root_inode : (cwd_inode || this.root_mount?.root_inode);
@@ -59,7 +59,8 @@ export class Vfs {
 
 			const next_inode: Inode | undefined = mount.driver.lookup(inode, component);
 			if (next_inode === undefined) {
-				return $multi(mount, undefined); // not found; return mount ctx so callers can create files
+				return err("ENOENT", path);
+				//return $multi(mount, undefined); // not found; return mount ctx so callers can create files
 			}
 
 			const child_mount: Mount = mount.children[next_inode.id];
@@ -67,7 +68,7 @@ export class Vfs {
 			inode = child_mount !== undefined ? child_mount.root_inode : next_inode;
 		}
 
-		return $multi(mount, inode);
+		return ok([mount, inode]);
 	}
 
 	// Check permissions on an inode.
@@ -86,11 +87,7 @@ export class Vfs {
 		if (mount_path === "/") {
 			this.root_mount = new Mount(driver, root_inode);
 		} else {
-			let [parent_mount, mp_inode] = this.namei(mount_path);
-
-			if (mp_inode === undefined) {
-				throw new KError("ENOENT", mount_path);
-			}
+			let [parent_mount, mp_inode] = unwrap(this.namei(mount_path));
 			let mp_info: MountParentInfo = { mount: parent_mount, mountpoint: mp_inode }
 			let new_mount = new Mount(driver, root_inode, mp_info);
 			parent_mount.children[mp_inode.id] = new_mount;
@@ -103,27 +100,25 @@ export class Vfs {
 		if (mount_path === "/") {
 			this.root_mount = undefined;
 		} else {
-			let [parent_mount, mp_inode] = this.namei(mount_path);
-			if (mp_inode && parent_mount.children[mp_inode.id]) {
+			let r = this.namei(mount_path);
+			if (!r.ok) { return; }
+			let [parent_mount, mp_inode] = r.value;
+			if (parent_mount.children[mp_inode.id]) {
 				delete parent_mount.children[mp_inode.id];
 			}
 		}
 	}
 
-	private get_inode_or_error(path: Path, process: Process): LuaMultiReturn<[Mount, Inode]> {
-		let [mount, inode] = this.namei(path, process.cred, process.cwd_mount, process.cwd_inode);
-		if (inode === undefined) { throw new KError("ENOENT", path); }
-		return $multi(mount, inode);
-	}
-
 	read_file(process: Process, path: Path, offset: integer, length: integer) {
-		let [mount, inode] = this.get_inode_or_error(path, process);
+		let [mount, inode] = unwrap(this.namei(path, process.cred, process.cwd_mount, process.cwd_inode));
 		this.check_inode_perm(process.cred, inode, InodeModeFlags.MASK_READ, path);
 		return mount.driver.read_file(inode, offset, length);
 	}
 
 	read_dir(process: Process, path: Path): Result<string[]> {
-		let [mount, inode] = this.get_inode_or_error(path, process);
+		let r = this.namei(path, process.cred, process.cwd_mount, process.cwd_inode);
+		if (!r.ok) return r;
+		let [mount, inode] = r.value;
 		this.check_inode_perm(process.cred, inode, InodeModeFlags.MASK_READ, path);
 		let dir_result = mount.driver.read_dir(inode);
 
@@ -137,13 +132,13 @@ export class Vfs {
 	}
 
 	write_file(process: Process, path: Path, offset: integer, data: string) {
-		let [mount, inode] = this.get_inode_or_error(path, process);
+		let [mount, inode] = unwrap(this.namei(path, process.cred, process.cwd_mount, process.cwd_inode));
 		this.check_inode_perm(process.cred, inode, InodeModeFlags.MASK_WRITE, path);
 		return mount.driver.write_file(inode, offset, data);
 	}
 
 	create_file(process: Process, parent_path: Path, name: string, type: InodeModeFlags) {
-		let [mount, parent_inode] = this.get_inode_or_error(parent_path, process);
+		let [mount, parent_inode] = unwrap(this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode));
 		if (!get_inode_file_type(parent_inode, InodeModeFlags.TYPE_DIR)) {
 			throw new KError("ENOTDIR", parent_path);
 		}
@@ -153,37 +148,37 @@ export class Vfs {
 	}
 
 	unlink(process: Process, path: Path) {
-		let [mount, inode] = this.get_inode_or_error(path, process);
-		if (!get_inode_file_type(inode, InodeModeFlags.TYPE_DIR)) {
+		let [mount, inode] = unwrap(this.namei(path, process.cred, process.cwd_mount, process.cwd_inode));
+		if (get_inode_file_type(inode, InodeModeFlags.TYPE_DIR)) {
 			throw new KError("EISDIR", path);
 		}
 		let parent_path: Path = string.match(path, "^(.+)/[^/]+$")[0] || string.sub(path, 1, 1);
-		let [_, parent_inode] = this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode);
-		if (parent_inode) {
-			this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_WRITE, parent_path);
-			this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_EXEC, parent_path);
-		}
+		let [_, parent_inode] = unwrap(this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode));
+		this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_WRITE, parent_path);
+		this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_EXEC, parent_path);
 		mount.driver.destroy_file(inode);
 	}
 
 	mkdir(process: Process, path: Path): unknown {
 		let name: string = string.match(path, "[^/]+$")[0] || (string.sub(path, 1, 1) === "/" ? "/" : ".");
 		let parent_path: Path = string.match(path, "^(.+)/[^/]+$")[0] || (string.sub(path, 1, 1) === "/" ? "/" : ".");
-		let [mount, parent_inode] = this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode);
-		if (parent_inode === undefined) { throw new KError("ENOENT", parent_path); }
+		let [mount, parent_inode] = unwrap(this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode));
 		if (!get_inode_file_type(parent_inode, InodeModeFlags.TYPE_DIR)) {
-			throw new KError("EISDIR", parent_path);
+			throw new KError("ENOTDIR", parent_path);
 		}
 		this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_WRITE, parent_path);
 		this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_EXEC, parent_path);
 
-		let [_, existing] = this.namei(path, process.cred, process.cwd_mount, process.cwd_inode);
-		if (existing !== undefined) { throw new KError("EEXIST", path); }
+		let existing = this.namei(path, process.cred, process.cwd_mount, process.cwd_inode);
+		if (existing.ok) { throw new KError("EEXIST", path); }
+		if (existing.error.code !== "ENOENT") { throw existing.error; }
 		return mount.driver.create_file(parent_inode, name, InodeModeFlags.TYPE_DIR);
 	}
 
 	rmdir(process: Process, path: Path): Result<void> {
-		let [mount, inode] = this.get_inode_or_error(path, process);
+		let r = this.namei(path, process.cred, process.cwd_mount, process.cwd_inode);
+		if (!r.ok) return r;
+		let [mount, inode] = r.value;
 		if (!get_inode_file_type(inode, InodeModeFlags.TYPE_DIR)) {
 			throw new KError("ENOTDIR", path);
 		}
@@ -192,13 +187,13 @@ export class Vfs {
 			return err("ENOTEMPTY", path);
 		}
 		let parent_path: Path = string.match(path, "^(.+)/[^/]+$")[0] || (string.sub(path, 1, 1) === "/" ? "/" : ".");
-		let [_, parent_inode] = this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode);
-		if (parent_inode !== undefined) {
-			this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_WRITE, parent_path);
-			this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_EXEC, parent_path);
+		let parent_r = this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode);
+		if (!parent_r.ok) return parent_r;
+		let [_, parent_inode] = parent_r.value;
+		this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_WRITE, parent_path);
+		this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_EXEC, parent_path);
 
-			parent_inode.links -= 1;
-		}
+		parent_inode.links -= 1;
 		mount.driver.destroy_file(inode);
 
 		return success();

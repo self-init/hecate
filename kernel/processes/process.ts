@@ -1,6 +1,6 @@
 import * as Bitwise from "../common/bitwise";
 import { band, freeze } from "../common/bitwise";
-import { KError } from "../common/error";
+import { KError, unwrap } from "../common/error";
 import { resolve } from "../common/paths";
 import { Kernel } from "../kernel";
 import { FileDescriptor } from "../vfs/fd/init";
@@ -55,9 +55,9 @@ export class Process {
 	}
 
 	private open_tty_fds() {
-		let [mount, inode] = this.kernel.vfs.namei("/dev/tty");
-		for (let n = 0; n < 2; n++) {
-			this.fds.set(n, new FileDescriptor(mount, inode!, "/dev/tty", FileDescriptorOpenFlags.O_RDWR));
+		let [mount, inode] = unwrap(this.kernel.vfs.namei("/dev/tty"));
+		for (let n = 0; n <= 2; n++) {
+			this.fds.set(n, new FileDescriptor(mount, inode, "/dev/tty", FileDescriptorOpenFlags.O_RDWR));
 		}
 	}
 
@@ -65,22 +65,23 @@ export class Process {
 		let vfs = this.kernel.vfs;
 		let cwd_mount = base_mount || this.cwd_mount;
 		let cwd_inode = base_inode || this.cwd_inode;
-		let [mount, inode] = vfs.namei(path, this.cred, cwd_mount, cwd_inode);
+		let r = vfs.namei(path, this.cred, cwd_mount, cwd_inode);
+		let mount: Mount;
+		let inode: Inode;
 
-		if (inode === undefined) {
-			if (band(flags, FileDescriptorOpenFlags.O_CREAT) !== 0) {
+		if (r.ok) {
+			[mount, inode] = r.value;
+		} else {
+			if (r.error.code === "ENOENT" && band(flags, FileDescriptorOpenFlags.O_CREAT) !== 0) {
 				let [name] = string.match(path, "[^/]+$") || path;
 				let [parent_path] = string.match(path, "^(.+)/[^/]+$") || (string.sub(path, 1, 1) === "/" ? "/" : ".");
-				let [parent_mount, parent_inode] = vfs.namei(parent_path, this.cred, cwd_mount, cwd_inode);
-				if (parent_inode === undefined) {
-					throw new KError("ENOENT", path);
-				}
+				let [parent_mount, parent_inode] = unwrap(vfs.namei(parent_path, this.cred, cwd_mount, cwd_inode));
 				vfs.check_inode_perm(this.cred, parent_inode, InodeModeFlags.MASK_WRITE, path);
 				vfs.check_inode_perm(this.cred, parent_inode, InodeModeFlags.MASK_EXEC, path);
 				inode = parent_mount.driver.create_file(parent_inode, name, InodeModeFlags.TYPE_REG);
 				mount = parent_mount;
 			} else {
-				throw new KError("ENOENT", path);
+				throw r.error;
 			}
 		}
 
@@ -172,11 +173,7 @@ export class Process {
 
 	exec(path: Path) {
 		let vfs = this.kernel.vfs;
-		let [mount, inode] = vfs.namei(path, this.cred, this.cwd_mount, this.cwd_inode);
-
-		if (inode === undefined) {
-			throw new KError("ENOENT", path);
-		}
+		let [mount, inode] = unwrap(vfs.namei(path, this.cred, this.cwd_mount, this.cwd_inode));
 
 		if (!get_inode_file_type(inode, InodeModeFlags.TYPE_REG)) {
 			throw new KError("ENOEXEC", path);
@@ -204,11 +201,7 @@ export class Process {
 
 	chdir(path: Path) {
 		let vfs = this.kernel.vfs;
-		let [mount, inode] = vfs.namei(path, this.cred, this.cwd_mount, this.cwd_inode);
-
-		if (inode === undefined) {
-			throw new KError("ENOENT", path);
-		}
+		let [mount, inode] = unwrap(vfs.namei(path, this.cred, this.cwd_mount, this.cwd_inode));
 
 		if (!get_inode_file_type(inode, InodeModeFlags.TYPE_DIR)) {
 			throw new KError("ENOTDIR", path);

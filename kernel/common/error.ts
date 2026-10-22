@@ -21,8 +21,10 @@ export class KError extends Error {
 	cause?: KError;
 
 	constructor(code: ErrorCode, message: string) {
-		super();
+		super(message);
 		this.code = code;
+		// tstl's Error tostring is "<name>: <message>", so this prints as e.g. "ENOENT: /bin/foo"
+		this.name = code;
 	}
 
 

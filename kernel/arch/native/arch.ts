@@ -1,3 +1,4 @@
+import { unwrap } from "../../common/error";
 import { Null } from "../../drivers/agnostic/null";
 import { Kbd } from "../../drivers/native/kbd";
 import { NativeTty } from "../../drivers/native/tty";
@@ -11,10 +12,10 @@ export class NativeArch implements Arch {
 		// min 0 time 1: io.read(1) returns after at most 100ms with no data
     os.execute("stty raw -echo min 0 time 1 2>/dev/null")
 
-		let [devfs_mount, devfs_root] = kernel.vfs.namei("/dev");
-		devfs_mount.driver.create_file(devfs_root!, "tty", InodeModeFlags.TYPE_CHR);
-		devfs_mount.driver.create_file(devfs_root!, "kbd", InodeModeFlags.TYPE_CHR);
-		devfs_mount.driver.create_file(devfs_root!, "null", InodeModeFlags.TYPE_CHR);
+		let [devfs_mount, devfs_root] = unwrap(kernel.vfs.namei("/dev"));
+		devfs_mount.driver.create_file(devfs_root, "tty", InodeModeFlags.TYPE_CHR);
+		devfs_mount.driver.create_file(devfs_root, "kbd", InodeModeFlags.TYPE_CHR);
+		devfs_mount.driver.create_file(devfs_root, "null", InodeModeFlags.TYPE_CHR);
 
 		kernel.vfs.mount(this.tty, "/dev/tty");
 		kernel.vfs.mount(new Kbd(this), "/dev/kbd");

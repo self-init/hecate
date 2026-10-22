@@ -178,8 +178,9 @@ export function create(process: Process): ProcessInterface {
 
 			let code, found_path;
 			for (const path of candidates) {
-				let [mount, inode] = vfs.namei(path);
-				if (inode !== undefined && mount !== undefined) {
+				let r = vfs.namei(path);
+				if (r.ok) {
+					let [mount, inode] = r.value;
 					code = mount.driver.read_file(inode, 0, inode.size);
 					found_path = path;
 					break;

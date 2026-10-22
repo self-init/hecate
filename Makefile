@@ -1,5 +1,6 @@
 out = output
-docsdir = docs
+# Generated API docs only. Hand-written docs live in docs/ (tracked) — never point clean at it.
+docsdir = $(out)/docs
 
 # ComputerCraft Variables
 cc_kernel = $(out)/hecate-cc.lua
@@ -74,8 +75,7 @@ documentation: $(docsdir)
 	lua-language-server --doc=. --doc_out_path=./$(docsdir)
 
 $(docsdir):
-	mkdir $(docsdir)
+	mkdir -p $(docsdir)
 
 clean:
 	rm -rf $(out)
-	rm -rf $(docsdir)

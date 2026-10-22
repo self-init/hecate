@@ -1,3 +1,4 @@
+import { unwrap } from "../../common/error";
 import { Null } from "../../drivers/agnostic/null";
 import { Kbd } from "../../drivers/cc/kbd";
 import { CCTty } from "../../drivers/cc/tty";
@@ -21,10 +22,10 @@ export class CCArch implements Arch {
 		this.kernel = kernel;
 		this.timer_id = os.startTimer(0.05);
 
-		let [devfs_mount, devfs_root] = kernel.vfs.namei("/dev");
-		devfs_mount.driver.create_file(devfs_root!, "tty", InodeModeFlags.TYPE_CHR);
-		devfs_mount.driver.create_file(devfs_root!, "kbd", InodeModeFlags.TYPE_CHR);
-		devfs_mount.driver.create_file(devfs_root!, "null", InodeModeFlags.TYPE_CHR);
+		let [devfs_mount, devfs_root] = unwrap(kernel.vfs.namei("/dev"));
+		devfs_mount.driver.create_file(devfs_root, "tty", InodeModeFlags.TYPE_CHR);
+		devfs_mount.driver.create_file(devfs_root, "kbd", InodeModeFlags.TYPE_CHR);
+		devfs_mount.driver.create_file(devfs_root, "null", InodeModeFlags.TYPE_CHR);
 
 		kernel.vfs.mount(this.tty, "/dev/tty");
 		kernel.vfs.mount(new Kbd(this), "/dev/kbd");
