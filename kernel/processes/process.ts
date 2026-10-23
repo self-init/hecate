@@ -1,7 +1,7 @@
 import * as Bitwise from "../common/bitwise";
 import { band, freeze } from "../common/bitwise";
 import { KError, unwrap } from "../common/error";
-import { resolve } from "../common/paths";
+import { basename, dirname, resolve } from "../common/paths";
 import { Kernel } from "../kernel";
 import { FileDescriptor } from "../vfs/fd/init";
 import { get_inode_file_type } from "../vfs/inode/init";
@@ -73,8 +73,8 @@ export class Process {
 			[mount, inode] = r.value;
 		} else {
 			if (r.error.code === "ENOENT" && band(flags, FileDescriptorOpenFlags.O_CREAT) !== 0) {
-				let [name] = string.match(path, "[^/]+$") || path;
-				let [parent_path] = string.match(path, "^(.+)/[^/]+$") || (string.sub(path, 1, 1) === "/" ? "/" : ".");
+				let name = basename(path);
+				let parent_path = dirname(path);
 				let [parent_mount, parent_inode] = unwrap(vfs.namei(parent_path, this.cred, cwd_mount, cwd_inode));
 				vfs.check_inode_perm(this.cred, parent_inode, InodeModeFlags.MASK_WRITE, path);
 				vfs.check_inode_perm(this.cred, parent_inode, InodeModeFlags.MASK_EXEC, path);

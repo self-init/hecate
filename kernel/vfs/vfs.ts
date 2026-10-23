@@ -1,4 +1,5 @@
 import { err, isErr, isOk, KError, ok, Result, success, unwrap } from "../common/error";
+import { basename, dirname } from "../common/paths";
 import type { Credentials } from "../processes/credentials";
 import type { Inode } from "./inode/init";
 import { get_inode_perms, get_inode_file_type } from "./inode/init";
@@ -155,7 +156,7 @@ export class Vfs {
 		if (get_inode_file_type(inode, InodeModeFlags.TYPE_DIR)) {
 			throw new KError("EISDIR", path);
 		}
-		let parent_path: Path = string.match(path, "^(.+)/[^/]+$")[0] || string.sub(path, 1, 1);
+		let parent_path = dirname(path);
 		let [_, parent_inode] = unwrap(this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode));
 		this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_WRITE, parent_path);
 		this.check_inode_perm(process.cred, parent_inode, InodeModeFlags.MASK_EXEC, parent_path);
@@ -163,8 +164,8 @@ export class Vfs {
 	}
 
 	mkdir(process: Process, path: Path): unknown {
-		let name: string = string.match(path, "[^/]+$")[0] || (string.sub(path, 1, 1) === "/" ? "/" : ".");
-		let parent_path: Path = string.match(path, "^(.+)/[^/]+$")[0] || (string.sub(path, 1, 1) === "/" ? "/" : ".");
+		let name = basename(path);
+		let parent_path = dirname(path);
 		let [mount, parent_inode] = unwrap(this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode));
 		if (!get_inode_file_type(parent_inode, InodeModeFlags.TYPE_DIR)) {
 			throw new KError("ENOTDIR", parent_path);
@@ -189,7 +190,7 @@ export class Vfs {
 		if (isOk(dir_result) && unwrap(dir_result).length > 0) {
 			return err("ENOTEMPTY", path);
 		}
-		let parent_path: Path = string.match(path, "^(.+)/[^/]+$")[0] || (string.sub(path, 1, 1) === "/" ? "/" : ".");
+		let parent_path = dirname(path);
 		let parent_r = this.namei(parent_path, process.cred, process.cwd_mount, process.cwd_inode);
 		if (!parent_r.ok) return parent_r;
 		let [_, parent_inode] = parent_r.value;
