@@ -29,7 +29,7 @@ local data     = {}
 local function alloc_inode(mode, size)
     local id  = inode_id
     inode_id  = inode_id + 1
-    local ind = { id = id, links = 0, size = size or 0, owner = 0, group = 0, mode = mode }
+    local ind = { id = id, links = 1, size = size or 0, refs = 0, unlinked = false, owner = 0, group = 0, mode = mode }
     inodes[id] = ind
     return ind
 end

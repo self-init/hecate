@@ -98,6 +98,8 @@ export class SerialFS extends BaseFS {
 			// tables would leave inodes off-by-one and data as a non-Map.
 			let inodes: Inode[] = [];
 			for (const [id, inode] of pairs(state.get("inodes") as LuaTable<integer, Inode>)) {
+				// refs counts open fds, which never survive a reboot.
+				inode.refs = 0;
 				inodes[id] = inode;
 			}
 			this.inodes = inodes;
