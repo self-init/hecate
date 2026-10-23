@@ -11,6 +11,14 @@ function main() {
 	if (!ok) {
 		printError("kernel panic: " + tostring(err));
 	}
+	print("Press any key to shut down.");
+	// pullEventRaw (not pullEvent) so Ctrl+T's "terminate" can't abort the wait;
+	// any non-"key" event, terminate included, is ignored.
+	while (true) {
+		let [event] = os.pullEventRaw();
+		if (event === "key") { break; }
+	}
+	os.shutdown();
 }
 
 main();
