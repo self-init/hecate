@@ -5,11 +5,10 @@ end
 
 local function cat(path)
 	local fd = open(path, 0)
-	local chunk = read(fd, 512)
-	while chunk ~= "" do
-		write(1, chunk)
+	repeat
 		chunk = read(fd, 512)
-	end
+		write(1, chunk)
+	until chunk == ""
 	close(fd)
 end
 
