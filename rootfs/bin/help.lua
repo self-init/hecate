@@ -1,0 +1,8 @@
+write(1, "Commands:\n")
+write(1, "echo\tWrites back it's arguments to stdout\n\tUsage: echo <text>\n")
+write(1, "ls\tLists the contents of the given directory\n\tUsage: ls [directory]\n")
+write(1, "mkdir\tCreates a new directory\n\tUsage: mkdir <dirname>\n")
+write(1, "pwd\tPrints the current working directory\n\tUsage: pwd\n")
+write(1, "rm\tRemoves a file\n\tUsage: rm <file> ...\n")
+write(1, "rmdir\tRemoves an empty directory\n\tUsage: rm <directory> ...\n")
+write(1, "exit:\tExits the shell\n\tUsage: exit\n")
