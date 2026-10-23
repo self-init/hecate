@@ -90,6 +90,5 @@ export function resolve(rel_path: Path, wd_path: Path): Path {
 		}
 	}
 
-	let resolved_path = path_parts.join("") + "/";
-	return "/" + resolved_path;
+	return "/" + path_parts.join("/");
 }
